@@ -274,28 +274,24 @@ function VoiceMode({
           }}
           aria-label={isActive ? "停止倾听" : "开始倾听"}
         >
-          {/* Star character image - transparent background */}
-          <div
-            className="w-48 h-48 flex items-center justify-center"
+          {/* Star character image - no container box */}
+          <img
+            src="/star-character.png"
+            alt="Echo 语音助手"
+            className="w-40 h-40 object-contain"
+            draggable={false}
             style={{
-              boxShadow: isActive
-                ? "0 0 60px rgba(255,215,100,0.5)"
+              filter: isActive
+                ? "drop-shadow(0 0 20px rgba(255,215,100,0.6))"
                 : status === "connecting"
-                ? "0 0 30px rgba(255,215,100,0.25)"
-                : "0 4px 20px rgba(0,0,0,0.1)",
+                ? "drop-shadow(0 0 10px rgba(255,215,100,0.3))"
+                : "none",
             }}
-          >
-            <img
-              src="/star-character.png"
-              alt="Echo 语音助手"
-              className="w-40 h-40 object-contain"
-              draggable={false}
-            />
-          </div>
+          />
 
           {/* Connecting overlay */}
           {status === "connecting" && (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-12 h-12 border-3 border-white/60 border-t-white rounded-full animate-spin" />
             </div>
           )}
