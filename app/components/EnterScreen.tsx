@@ -7,7 +7,13 @@ interface EnterScreenProps {
 export default function EnterScreen({ onEnter }: EnterScreenProps) {
   return (
     <div className="relative flex flex-col h-dvh max-w-md mx-auto overflow-hidden">
-      <DreamyBackground />
+      {/* Use new background image */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "url('/enter page.png') center center / cover no-repeat",
+        }}
+      />
 
       {/* Content pinned to bottom */}
       <div className="relative z-10 mt-auto px-7 pb-14">

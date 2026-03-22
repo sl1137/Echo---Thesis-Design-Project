@@ -202,15 +202,20 @@ function VoiceMode({
   }[status];
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 pb-10">
+    <div
+      className="flex-1 flex flex-col items-center justify-center px-6 pb-10 relative"
+      style={{
+        background: "url('/语音页面.png') center center / cover no-repeat",
+      }}
+    >
       {/* Status text */}
-      <p className="text-[15px] text-echo-ink-secondary font-medium mb-8 animate-fade-in">
+      <p className="text-[15px] text-echo-ink-secondary font-medium mb-8 animate-fade-in relative z-10">
         {statusText}
       </p>
 
       {/* Error message */}
       {error && (
-        <p className="text-[13px] text-red-400 mb-4 text-center animate-fade-in">
+        <p className="text-[13px] text-red-400 mb-4 text-center animate-fade-in relative z-10">
           {error}
         </p>
       )}
@@ -250,7 +255,7 @@ function VoiceMode({
           style={{ animationDelay: "0.6s" }}
         />
 
-        {/* Character image button */}
+        {/* Character image button - Star character */}
         <button
           onClick={handleClick}
           disabled={status === "connecting"}
@@ -261,31 +266,43 @@ function VoiceMode({
             filter: status === "connecting"
               ? "brightness(0.8)"
               : isActive
-              ? "brightness(1.1) drop-shadow(0 0 20px rgba(139,108,224,0.4))"
+              ? "brightness(1.1) drop-shadow(0 0 20px rgba(255,215,100,0.5))"
               : "brightness(1)",
             transform: status === "connecting" ? "scale(0.95)" : "scale(1)",
             opacity: status === "connecting" ? 0.8 : 1,
           }}
           aria-label={isActive ? "停止倾听" : "开始倾听"}
         >
-          {/* Character image */}
+          {/* Character image - star with background removed via mix-blend-mode */}
           <div
-            className="w-64 h-64 rounded-full overflow-hidden"
+            className="w-56 h-56 rounded-full overflow-hidden flex items-center justify-center"
             style={{
-              background: "linear-gradient(180deg, #E8E4F5 0%, #D4CEF0 100%)",
+              background: "transparent",
               boxShadow: isActive
-                ? "0 0 60px rgba(139,108,224,0.5), inset 0 0 40px rgba(255,255,255,0.3)"
+                ? "0 0 60px rgba(255,215,100,0.5)"
                 : status === "connecting"
-                ? "0 0 30px rgba(139,108,224,0.25)"
+                ? "0 0 30px rgba(255,215,100,0.25)"
                 : "0 4px 20px rgba(0,0,0,0.1)",
             }}
           >
-            <img
-              src="/语音页面.png"
-              alt="Echo 语音助手"
-              className="w-full h-full object-cover"
-              draggable={false}
-            />
+            <div
+              className="w-40 h-40 relative"
+              style={{
+                /* Create star shape using clip-path */
+                clipPath: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
+                background: "linear-gradient(135deg, #FFE26B 0%, #FFD93D 50%, #FFC41A 100%)",
+                boxShadow: "inset 0 0 20px rgba(255,255,255,0.5)",
+              }}
+            >
+              {/* Star face - simple eyes */}
+              <div className="absolute top-[35%] left-[28%] w-[12%] h-[15%] bg-[#E8A83D] rounded-full opacity-80" />
+              <div className="absolute top-[35%] right-[28%] w-[12%] h-[15%] bg-[#E8A83D] rounded-full opacity-80" />
+              {/* Smile */}
+              <div
+                className="absolute top-[55%] left-1/2 -translate-x-1/2 w-[25%] h-[10%] border-b-2 border-[#E8A83D] rounded-full opacity-80"
+                style={{ borderRadius: "0 0 10px 10px" }}
+              />
+            </div>
           </div>
 
           {/* Connecting overlay */}
@@ -297,7 +314,7 @@ function VoiceMode({
 
           {/* Active indicator - subtle pulse dot */}
           {isActive && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3 h-3 bg-echo-purple rounded-full animate-pulse" />
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-yellow-400 rounded-full animate-pulse shadow-lg" />
           )}
         </button>
       </div>
@@ -484,7 +501,7 @@ export default function ChatScreen({ onBack }: ChatScreenProps) {
         background:
           mode === "text"
             ? "linear-gradient(180deg, #F5F2FA 0%, #F0ECF7 100%)"
-            : "linear-gradient(180deg, #E9E2F8 0%, #DDEBFA 50%, #E9E2F8 100%)",
+            : "transparent",
       }}
     >
       <ChatHeader onBack={onBack} />
