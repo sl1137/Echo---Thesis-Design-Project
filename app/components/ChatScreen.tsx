@@ -205,7 +205,8 @@ function VoiceMode({
     <div
       className="flex-1 flex flex-col items-center justify-center px-6 pb-10 relative"
       style={{
-        background: "url('/语音页面.png') center center / cover no-repeat",
+        background:
+          "linear-gradient(180deg, #E9E2F8 0%, #DDEBFA 50%, #E9E2F8 100%)",
       }}
     >
       {/* Status text */}
@@ -226,20 +227,20 @@ function VoiceMode({
         <div
           className={`absolute -inset-16 rounded-full transition-all duration-700 ${
             isActive
-              ? "bg-echo-purple/20 animate-breathe"
+              ? "bg-yellow-400/20 animate-breathe"
               : status === "connecting"
-              ? "bg-echo-purple/10"
-              : "bg-echo-purple/5"
+              ? "bg-yellow-400/10"
+              : "bg-yellow-400/5"
           }`}
         />
         {/* Second ring */}
         <div
           className={`absolute -inset-10 rounded-full transition-all duration-700 ${
             isActive
-              ? "bg-echo-purple/15 animate-breathe"
+              ? "bg-yellow-400/15 animate-breathe"
               : status === "connecting"
-              ? "bg-echo-purple/8"
-              : "bg-echo-purple/3"
+              ? "bg-yellow-400/8"
+              : "bg-yellow-400/3"
           }`}
           style={{ animationDelay: "0.3s" }}
         />
@@ -247,9 +248,9 @@ function VoiceMode({
         <div
           className={`absolute -inset-4 rounded-full transition-all duration-700 ${
             isActive
-              ? "bg-echo-purple/10 animate-breathe"
+              ? "bg-yellow-400/10 animate-breathe"
               : status === "connecting"
-              ? "bg-echo-purple/5"
+              ? "bg-yellow-400/5"
               : "bg-transparent"
           }`}
           style={{ animationDelay: "0.6s" }}
@@ -273,11 +274,10 @@ function VoiceMode({
           }}
           aria-label={isActive ? "停止倾听" : "开始倾听"}
         >
-          {/* Character image - star with background removed via mix-blend-mode */}
+          {/* Star character image - transparent background */}
           <div
-            className="w-56 h-56 rounded-full overflow-hidden flex items-center justify-center"
+            className="w-48 h-48 flex items-center justify-center"
             style={{
-              background: "transparent",
               boxShadow: isActive
                 ? "0 0 60px rgba(255,215,100,0.5)"
                 : status === "connecting"
@@ -285,24 +285,12 @@ function VoiceMode({
                 : "0 4px 20px rgba(0,0,0,0.1)",
             }}
           >
-            <div
-              className="w-40 h-40 relative"
-              style={{
-                /* Create star shape using clip-path */
-                clipPath: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
-                background: "linear-gradient(135deg, #FFE26B 0%, #FFD93D 50%, #FFC41A 100%)",
-                boxShadow: "inset 0 0 20px rgba(255,255,255,0.5)",
-              }}
-            >
-              {/* Star face - simple eyes */}
-              <div className="absolute top-[35%] left-[28%] w-[12%] h-[15%] bg-[#E8A83D] rounded-full opacity-80" />
-              <div className="absolute top-[35%] right-[28%] w-[12%] h-[15%] bg-[#E8A83D] rounded-full opacity-80" />
-              {/* Smile */}
-              <div
-                className="absolute top-[55%] left-1/2 -translate-x-1/2 w-[25%] h-[10%] border-b-2 border-[#E8A83D] rounded-full opacity-80"
-                style={{ borderRadius: "0 0 10px 10px" }}
-              />
-            </div>
+            <img
+              src="/star-character.png"
+              alt="Echo 语音助手"
+              className="w-40 h-40 object-contain"
+              draggable={false}
+            />
           </div>
 
           {/* Connecting overlay */}

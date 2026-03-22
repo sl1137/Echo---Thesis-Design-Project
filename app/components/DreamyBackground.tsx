@@ -34,25 +34,25 @@ export default function DreamyBackground() {
         }}
       />
 
-      {/* Floating island-like shapes */}
+      {/* Floating island-like shapes - moved up for text clearance */}
       <div
-        className="absolute bottom-[28%] left-[5%] w-[45%] h-[22%] opacity-30"
+        className="absolute bottom-[45%] left-[5%] w-[45%] h-[22%] opacity-30"
         style={{
           background: "linear-gradient(160deg, #B8D8BA 0%, #8BC99A 40%, #7BB98A 100%)",
           borderRadius: "40% 60% 55% 45% / 50% 40% 60% 50%",
         }}
       />
       <div
-        className="absolute bottom-[20%] right-[0%] w-[55%] h-[28%] opacity-25"
+        className="absolute bottom-[38%] right-[0%] w-[55%] h-[28%] opacity-25"
         style={{
           background: "linear-gradient(140deg, #A8D5AA 0%, #7EC98E 50%, #6DB97D 100%)",
           borderRadius: "55% 45% 50% 50% / 45% 55% 45% 55%",
         }}
       />
 
-      {/* Waterfall shimmer */}
+      {/* Waterfall shimmer - moved up */}
       <div
-        className="absolute bottom-[22%] right-[20%] w-[3px] h-[12%] opacity-20"
+        className="absolute bottom-[40%] right-[20%] w-[3px] h-[12%] opacity-20"
         style={{
           background: "linear-gradient(180deg, rgba(255,255,255,0.8), rgba(221,235,250,0.4))",
           borderRadius: "2px",

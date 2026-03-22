@@ -15,8 +15,8 @@ export default function EnterScreen({ onEnter }: EnterScreenProps) {
         }}
       />
 
-      {/* Content pinned to bottom */}
-      <div className="relative z-10 mt-auto px-7 pb-14">
+      {/* Content pinned to bottom - moved down for island clearance */}
+      <div className="relative z-10 mt-auto px-7 pb-20">
         <h1 className="text-[28px] font-bold leading-tight text-echo-ink animate-fade-in">
           Hold Space for
           <br />

@@ -7,7 +7,13 @@ interface LoginScreenProps {
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
   return (
     <div className="relative flex flex-col h-dvh max-w-md mx-auto overflow-hidden">
-      <DreamyBackground />
+      {/* Use new background image */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "url('/enter page.png') center center / cover no-repeat",
+        }}
+      />
 
       {/* Echo title — centered in upper-middle area */}
       <div className="relative z-10 flex-1 flex items-center justify-center">
