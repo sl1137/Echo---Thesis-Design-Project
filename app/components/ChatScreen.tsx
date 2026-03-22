@@ -12,14 +12,8 @@ interface Message {
 
 type ChatMode = "text" | "voice";
 
-// Natural initial messages — no template greetings
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: "1",
-    role: "echo",
-    text: "最近怎么样？",
-  },
-];
+// Empty initial state - AI will generate opening message
+const INITIAL_MESSAGES: Message[] = [];
 
 // ─── Chat Header ─────────────────────────────────────────────────────
 function ChatHeader({ onBack }: { onBack: () => void }) {
@@ -312,24 +306,100 @@ export default function ChatScreen({ onBack }: ChatScreenProps) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Send message to OpenAI API for text mode
+  // Use ref to ensure opening message is only fetched once
+  const hasOpenedRef = useRef(false);
+
+  // Fetch opening message from AI on first load
+  useEffect(() => {
+    if (mode !== "text") return;
+    if (hasOpenedRef.current) return;
+    if (messages.length > 0) return;
+
+    hasOpenedRef.current = true;
+    setIsLoading(true);
+
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "[OPENING]",
+        conversation: [],
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const bubbles = data.bubbles || ["…"];
+        const timestamp = Date.now();
+
+        // Add each bubble, but skip if same message already exists
+        bubbles.forEach((bubbleText: string, index: number) => {
+          setMessages((prev) => {
+            // Check if this exact message already exists
+            const exists = prev.some(m => m.role === "echo" && m.text === bubbleText);
+            if (exists) return prev;
+
+            const echoMsg: Message = {
+              id: `${timestamp + index}`,
+              role: "echo",
+              text: bubbleText,
+            };
+            return [...prev, echoMsg];
+          });
+        });
+      })
+      .catch((err) => {
+        console.error("Opening message error:", err);
+        setMessages((prev) => {
+          const exists = prev.some(m => m.role === "echo" && m.text === "hi～我是 Echo，想到什么都可以和我说说。");
+          if (exists) return prev;
+
+          const echoMsg: Message = {
+            id: "1",
+            role: "echo",
+            text: "hi～我是 Echo，想到什么都可以和我说说。",
+          };
+          return [...prev, echoMsg];
+        });
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
   // Returns array of bubbles (1-3 short messages)
   async function sendToOpenAI(userText: string): Promise<string[]> {
+    console.log("[sendToOpenAI] Sending message:", userText);
+    console.log("[sendToOpenAI] Conversation length:", messages.length);
+
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: userText,
-        conversation: messages.map((m) => ({ role: m.role, content: m.text })),
+        conversation: messages.slice(-20).map((m) => ({ role: m.role, content: m.text })),
       }),
     });
 
+    console.log("[sendToOpenAI] Response status:", response.status);
+
     if (!response.ok) {
-      throw new Error("Failed to get response");
+      const errorText = await response.text();
+      throw new Error(`Failed to get response: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data.bubbles || [data.response || "…"];
+    console.log("[sendToOpenAI] Response data:", JSON.stringify(data));
+
+    // Handle various response formats
+    if (data.bubbles && Array.isArray(data.bubbles) && data.bubbles.length > 0) {
+      // Filter out fallback messages
+      const validBubbles = data.bubbles.filter((b: string) => b && b.trim() && b !== "…");
+      return validBubbles.length > 0 ? validBubbles : ["嗯，我接到了。"];
+    }
+    if (data.response) {
+      return [data.response];
+    }
+    // Fallback
+    return ["嗯，我接到了。"];
   }
 
   function handleSend() {

@@ -6,10 +6,14 @@
  */
 
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
-// Prompts are in the prompts directory at project root
-const PROMPTS_DIR = join(process.cwd(), "prompts");
+// Get the directory of this file in Next.js server context
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Prompts are in the same directory as this file
+const PROMPTS_DIR = __dirname;
 
 function readPromptFile(filename: string): string {
   try {
@@ -26,24 +30,14 @@ export const CORE_PERSONA = readPromptFile("echo-core-persona.md");
 // ─── Text Mode Prompt ────────────────────────────────────────────────
 export const TEXT_MODE_PROMPT = readPromptFile("text-mode-prompt.md");
 
-// ─── Text Mode API Lite Prompt (for Chat Completions API) ────────────
-export const TEXT_MODE_API_LITE = readPromptFile("text-mode-api-lite.md");
-
 // ─── Realtime Voice Prompt ───────────────────────────────────────────
 export const REALTIME_VOICE_PROMPT = readPromptFile("realtime-voice-prompt.md");
 
 // ─── Combined Prompts ────────────────────────────────────────────────
 /**
  * Text mode: Core persona + text-specific rules
- * Use TEXT_MODE_API_LITE for Chat Completions API to avoid token issues
  */
 export const TEXT_MODE_SYSTEM = `${CORE_PERSONA}\n\n${TEXT_MODE_PROMPT}`;
-
-/**
- * Text mode API: Lite version for Chat Completions API
- * This is a condensed version to avoid token limits and whitespace responses
- */
-export const TEXT_MODE_API = TEXT_MODE_API_LITE;
 
 /**
  * Voice mode: Core persona + voice-specific rules

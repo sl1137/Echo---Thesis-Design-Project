@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/prompts": ["./prompts/index.ts"]
     }
   },
   "include": [
