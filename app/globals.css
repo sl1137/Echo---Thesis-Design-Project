@@ -1,26 +1,128 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Echo Color Palette */
+  --echo-purple: #6F4BD8;
+  --echo-purple-light: #8B6CE0;
+  --echo-purple-deep: #5A3AB5;
+  --echo-ink: #2E1F5E;
+  --echo-ink-secondary: #5C4B8A;
+  --echo-cloud: #FFFFFF;
+  --echo-border: #E5E2EB;
+  --echo-sky-mist: #DDEBFA;
+  --echo-blush: #F6DDE9;
+  --echo-cream: #F7E8B8;
+  --echo-lavender: #E9E2F8;
+  --echo-warm-bg: #FBF6F0;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Radius System */
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-pill: 999px;
+
+  /* Font */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme inline {
+  --color-echo-purple: var(--echo-purple);
+  --color-echo-purple-light: var(--echo-purple-light);
+  --color-echo-purple-deep: var(--echo-purple-deep);
+  --color-echo-ink: var(--echo-ink);
+  --color-echo-ink-secondary: var(--echo-ink-secondary);
+  --color-echo-cloud: var(--echo-cloud);
+  --color-echo-border: var(--echo-border);
+  --color-echo-sky-mist: var(--echo-sky-mist);
+  --color-echo-blush: var(--echo-blush);
+  --color-echo-cream: var(--echo-cream);
+  --color-echo-lavender: var(--echo-lavender);
+  --color-echo-warm-bg: var(--echo-warm-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--echo-lavender);
+  color: var(--echo-ink);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Soft Shadows ─────────────────────────────────────── */
+.shadow-echo-sm {
+  box-shadow: 0 2px 8px rgba(111, 75, 216, 0.08);
+}
+
+.shadow-echo-lg {
+  box-shadow: 0 4px 24px rgba(111, 75, 216, 0.1);
+}
+
+/* ─── Animations ───────────────────────────────────────── */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 40px rgba(111, 75, 216, 0.25), 0 0 80px rgba(111, 75, 216, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 60px rgba(111, 75, 216, 0.35), 0 0 120px rgba(111, 75, 216, 0.15);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-slow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(6px) translateY(-4px); }
+  50% { transform: translateX(-4px) translateY(-8px); }
+  75% { transform: translateX(4px) translateY(-2px); }
+}
+
+.animate-breathe { animation: breathe 4s ease-in-out infinite; }
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-glow { animation: glow-pulse 4s ease-in-out infinite; }
+.animate-fade-in { animation: fade-in 0.6s ease-out both; }
+.animate-fade-in-slow { animation: fade-in-slow 1s ease-out both; }
+.animate-drift { animation: drift 20s ease-in-out infinite; }
+
+/* Staggered entrance delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-700 { animation-delay: 700ms; }
+
+/* ─── Glass Surface ────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }

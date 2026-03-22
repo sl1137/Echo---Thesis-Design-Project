@@ -1,5 +1,19 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## OpenAI Realtime Voice Setup
+
+1. Copy the environment template:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+2. Edit `.env.local` and add your OpenAI API key:
+   ```
+   OPENAI_API_KEY=sk-your-key-here
+   ```
+   Get your API key from [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+
+3. Make sure you have billing enabled and realtime API access enabled on your OpenAI account.
+
 ## Getting Started
 
 First, run the development server:
