@@ -195,16 +195,16 @@ function VoiceMode({
   };
 
   const statusText = {
-    idle: "Tap to speak",
-    connecting: "Connecting...",
-    connected: "Listening...",
-    error: "Connection failed",
+    idle: "轻触开始对话",
+    connecting: "连接中...",
+    connected: "正在倾听...",
+    error: "连接失败",
   }[status];
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 pb-10">
       {/* Status text */}
-      <p className="text-[15px] text-echo-ink-secondary font-medium mb-10 animate-fade-in">
+      <p className="text-[15px] text-echo-ink-secondary font-medium mb-8 animate-fade-in">
         {statusText}
       </p>
 
@@ -215,66 +215,97 @@ function VoiceMode({
         </p>
       )}
 
-      {/* Central orb */}
+      {/* Character container */}
       <div className="relative mb-12">
-        {/* Outer glow ring */}
+        {/* Outer glow ring - breathes when active */}
         <div
-          className={`absolute -inset-6 rounded-full transition-all duration-700 ${
+          className={`absolute -inset-16 rounded-full transition-all duration-700 ${
             isActive
-              ? "bg-echo-purple/15 animate-breathe"
+              ? "bg-echo-purple/20 animate-breathe"
               : status === "connecting"
               ? "bg-echo-purple/10"
-              : "bg-echo-purple/8"
+              : "bg-echo-purple/5"
           }`}
         />
         {/* Second ring */}
         <div
-          className={`absolute -inset-3 rounded-full transition-all duration-700 ${
+          className={`absolute -inset-10 rounded-full transition-all duration-700 ${
+            isActive
+              ? "bg-echo-purple/15 animate-breathe"
+              : status === "connecting"
+              ? "bg-echo-purple/8"
+              : "bg-echo-purple/3"
+          }`}
+          style={{ animationDelay: "0.3s" }}
+        />
+        {/* Third ring */}
+        <div
+          className={`absolute -inset-4 rounded-full transition-all duration-700 ${
             isActive
               ? "bg-echo-purple/10 animate-breathe"
               : status === "connecting"
-              ? "bg-echo-purple/8"
-              : "bg-echo-purple/5"
+              ? "bg-echo-purple/5"
+              : "bg-transparent"
           }`}
-          style={{ animationDelay: "0.5s" }}
+          style={{ animationDelay: "0.6s" }}
         />
-        {/* Main orb */}
+
+        {/* Character image button */}
         <button
           onClick={handleClick}
           disabled={status === "connecting"}
-          className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 ${
+          className={`relative transition-all duration-500 active:scale-95 ${
             isActive ? "animate-glow" : ""
           }`}
           style={{
-            background:
-              status === "error"
-                ? "linear-gradient(135deg, #D46B6B 0%, #B54A4A 50%, #9A3A3A 100%)"
-                : "linear-gradient(135deg, #8B6CE0 0%, #6F4BD8 50%, #5A3AB5 100%)",
-            boxShadow: isActive
-              ? "0 0 50px rgba(111,75,216,0.35)"
-              : status === "connecting"
-              ? "0 0 40px rgba(111,75,216,0.25)"
-              : "0 0 30px rgba(111,75,216,0.2)",
-            opacity: status === "connecting" ? 0.7 : 1,
+            filter: status === "connecting"
+              ? "brightness(0.8)"
+              : isActive
+              ? "brightness(1.1) drop-shadow(0 0 20px rgba(139,108,224,0.4))"
+              : "brightness(1)",
+            transform: status === "connecting" ? "scale(0.95)" : "scale(1)",
+            opacity: status === "connecting" ? 0.8 : 1,
           }}
-          aria-label={isActive ? "Stop listening" : "Start listening"}
+          aria-label={isActive ? "停止倾听" : "开始倾听"}
         >
-          {status === "connecting" ? (
-            /* Connecting spinner */
-            <div className="w-8 h-8 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-          ) : isActive || status === "error" ? (
-            /* Stop icon */
-            <div className="w-8 h-8 rounded-sm bg-white/90" style={{ borderRadius: "4px" }} />
-          ) : (
-            /* Microphone icon */
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="22" />
-            </svg>
+          {/* Character image */}
+          <div
+            className="w-64 h-64 rounded-full overflow-hidden"
+            style={{
+              background: "linear-gradient(180deg, #E8E4F5 0%, #D4CEF0 100%)",
+              boxShadow: isActive
+                ? "0 0 60px rgba(139,108,224,0.5), inset 0 0 40px rgba(255,255,255,0.3)"
+                : status === "connecting"
+                ? "0 0 30px rgba(139,108,224,0.25)"
+                : "0 4px 20px rgba(0,0,0,0.1)",
+            }}
+          >
+            <img
+              src="/语音页面.png"
+              alt="Echo 语音助手"
+              className="w-full h-full object-cover"
+              draggable={false}
+            />
+          </div>
+
+          {/* Connecting overlay */}
+          {status === "connecting" && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-12 border-3 border-white/60 border-t-white rounded-full animate-spin" />
+            </div>
+          )}
+
+          {/* Active indicator - subtle pulse dot */}
+          {isActive && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3 h-3 bg-echo-purple rounded-full animate-pulse" />
           )}
         </button>
       </div>
+
+      {/* Hint text */}
+      <p className="text-[12px] text-echo-ink-secondary/60 mb-6">
+        {isActive ? "再次点击结束对话" : "点击角色开始对话"}
+      </p>
 
       {/* Switch to text mode */}
       <button
@@ -289,7 +320,7 @@ function VoiceMode({
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        Switch to text
+        切换到文字模式
       </button>
     </div>
   );
