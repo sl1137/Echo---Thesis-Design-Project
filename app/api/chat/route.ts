@@ -7,6 +7,60 @@ import { TEXT_MODE_API } from "@/prompts";
  * Handles text mode chat messages using OpenAI Chat Completions API.
  * Returns 1-3 short message bubbles per assistant turn for natural chat rhythm.
  */
+
+/**
+ * Detect the language of a text (simple heuristic)
+ * Returns 'en' for English, 'zh' for Chinese
+ */
+function detectLanguage(text: string): 'en' | 'zh' {
+  // Check for Chinese characters
+  const chinesePattern = /[\u4e00-\u9fa5]/;
+  const chineseMatch = text.match(chinesePattern);
+
+  // Check for English words (at least 3 consecutive Latin letters)
+  const englishPattern = /[a-zA-Z]{3,}/;
+  const englishMatch = text.match(englishPattern);
+
+  const chineseCount = chineseMatch ? chineseMatch.length : 0;
+  const englishCount = englishMatch ? englishMatch.length : 0;
+
+  // If more Chinese characters, it's Chinese; otherwise English
+  return chineseCount > englishCount ? 'zh' : 'en';
+}
+
+/**
+ * Get language instruction for the prompt
+ */
+function getLanguageInstruction(userMessage: string, conversation: Array<{ role: string; content: string }>): string {
+  // First, check the current user message
+  const currentLang = detectLanguage(userMessage);
+
+  // Also check recent conversation history for language consistency
+  // Look for the last 2 user messages to determine language pattern
+  const recentHistory = conversation.slice(-6);
+  let userLangCount = { en: 0, zh: 0 };
+
+  for (const msg of recentHistory) {
+    if (msg.role === 'user') {
+      const lang = detectLanguage(msg.content);
+      userLangCount[lang]++;
+    }
+  }
+
+  // If current message language matches majority of history, use it
+  // Otherwise, prefer current message language (user might have switched)
+  const historyMajority = userLangCount.zh > userLangCount.en ? 'zh' : 'en';
+
+  // If user just switched language, follow the current message
+  // If history strongly matches current, use current
+  const targetLang = currentLang;
+
+  if (targetLang === 'en') {
+    return "\n\nIMPORTANT: Respond in English. Match the user's language - if they write in English, you respond in English.";
+  } else {
+    return "\n\n重要：请用中文回复。保持与用户相同的语言——如果用户用中文，你用中文回复。";
+  }
+}
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -41,10 +95,25 @@ export async function POST(request: Request) {
 
     // Build messages array with system instruction
     // Use lite version of prompt to avoid token issues
-    const systemPrompt = TEXT_MODE_API + "\n\n请用 JSON 格式返回你的回复，包含一个 'bubbles' 数组。";
+    // Add language instruction based on user's language
+    const languageInstruction = isOpening ? "" : getLanguageInstruction(message || "", conversation);
+
+    // Determine language for system prompt JSON reminder
+    const systemLang = isOpening ? 'zh' : detectLanguage(message || "");
+    const jsonSystemReminder = systemLang === 'en'
+      ? "\n\nPlease respond in JSON format with a 'bubbles' array."
+      : "\n\n请用 JSON 格式返回你的回复，包含一个 'bubbles' 数组。";
+
+    const systemPrompt = TEXT_MODE_API + languageInstruction + jsonSystemReminder;
 
     // Reduce conversation history to 6 messages to avoid token issues
     const historySlice = isOpening ? 0 : 6;
+
+    // Determine language for JSON format reminder
+    const userLang = isOpening ? 'zh' : detectLanguage(message || "");
+    const jsonReminder = userLang === 'en'
+      ? "\n\nPlease respond in JSON format with a 'bubbles' array."
+      : "\n\n请用 JSON 格式回复，包含 'bubbles' 数组。";
 
     const messages = [
       {
@@ -60,7 +129,7 @@ export async function POST(request: Request) {
       // Add JSON format reminder to each user message
       {
         role: "user" as const,
-        content: (message || "hi") + "\n\n请用 JSON 格式回复，包含 'bubbles' 数组。",
+        content: (message || "hi") + jsonReminder,
       },
     ];
 
@@ -101,11 +170,17 @@ export async function POST(request: Request) {
 
     // Parse bubbles from JSON response
     let bubbles: string[] = [];
+    // Determine fallback language based on the last user message
+    const fallbackLang = detectLanguage(message || "");
+    const fallbackResponse = fallbackLang === 'en'
+      ? "Hmm, I got it."
+      : "嗯，我接到了。";
+
     try {
       // Check if content is only whitespace
       if (!content || !content.trim()) {
         console.log("[API] Response is whitespace only, using fallback");
-        bubbles = ["嗯，我接到了。"];
+        bubbles = [fallbackResponse];
       } else {
         const parsed = JSON.parse(content);
         console.log("[API] Parsed JSON:", parsed);
@@ -114,7 +189,7 @@ export async function POST(request: Request) {
     } catch (parseErr) {
       console.error("[API] JSON parse error:", parseErr);
       // Fallback: treat entire response as single bubble
-      bubbles = [content?.trim() || "嗯，我接到了。"];
+      bubbles = [content?.trim() || fallbackResponse];
     }
 
     // Filter empty bubbles and limit to 3

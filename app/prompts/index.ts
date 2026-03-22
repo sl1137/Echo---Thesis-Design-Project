@@ -43,3 +43,8 @@ export const TEXT_MODE_SYSTEM = `${CORE_PERSONA}\n\n${TEXT_MODE_PROMPT}`;
  * Voice mode: Core persona + voice-specific rules
  */
 export const REALTIME_VOICE_SYSTEM = `${CORE_PERSONA}\n\n${REALTIME_VOICE_PROMPT}`;
+
+/**
+ * Text mode API prompt - simplified version for API calls
+ */
+export const TEXT_MODE_API = TEXT_MODE_PROMPT;
