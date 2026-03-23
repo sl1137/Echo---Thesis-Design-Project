@@ -1,7 +1,54 @@
 @import "tailwindcss";
 
 :root {
-  /* Echo Color Palette */
+  /* Echo Color Palette - Editorial Softness Design System */
+  /* Primary colors */
+  --primary: #904949;
+  --on-primary: #FFFFFF;
+  --primary_container: #F59C9A;
+  --on_primary_container: #2D1513;
+
+  /* Secondary colors */
+  --secondary: #346382;
+  --on_secondary: #FFFFFF;
+  --secondary_container: #ACDAFE;
+  --on_secondary_container: #2D1513;
+
+  /* Tertiary accent colors */
+  --tertiary: #7B5A3A;
+  --on_tertiary: #FFFFFF;
+  --tertiary_container: #FFDAB6;
+  --on_tertiary_container: #2D1513;
+
+  /* Surface colors */
+  --surface: #FFF8F7;
+  --on_surface: #2D1513;  /* Never use pure black */
+  --surface_container: #FFE9E7;
+  --surface_container_low: #FFF0EF;
+  --surface_container_lowest: #FFFFFF;
+  --surface_container_high: #FFE0DE;
+  --surface_container_highest: #FFDAD7;
+  --surface_bright: #FFF3F1;
+  --surface_dim: #FFE3E0;
+
+  /* Background */
+  --background: #FFF8F7;
+  --on_background: #2D1513;
+
+  /* Error colors */
+  --error: #BA1A1A;
+  --on_error: #FFFFFF;
+  --error_container: #FFDAD6;
+  --on_error_container: #410002;
+
+  /* Outline & borders */
+  --outline: #9E7471;
+  --outline_variant: #9E7471;
+
+  /* Shadow */
+  --shadow: rgba(45, 21, 19, 0.1);
+
+  /* Legacy Echo colors (keep for backward compatibility) */
   --echo-purple: #6F4BD8;
   --echo-purple-light: #8B6CE0;
   --echo-purple-deep: #5A3AB5;
@@ -15,15 +62,18 @@
   --echo-lavender: #E9E2F8;
   --echo-warm-bg: #FBF6F0;
 
-  /* Radius System */
-  --radius-sm: 12px;
-  --radius-md: 20px;
-  --radius-lg: 28px;
+  /* Radius System - Card-style rounding per design system */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 16px;  /* default for cards, buttons, inputs */
+  --radius-xl: 24px;  /* large panels/modals */
+  --radius-2xl: 32px; /* hero containers */
   --radius-pill: 999px;
 
-  /* Font */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Font families */
+  --font-sans: 'Plus Jakarta Sans', var(--font-plus-jakarta), sans-serif;
+  --font-serif: 'Noto Serif', var(--font-noto-serif), serif;
 }
 
 @theme inline {
