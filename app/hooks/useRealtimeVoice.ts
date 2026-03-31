@@ -6,13 +6,18 @@
  * 2. Setting up WebRTC peer connection
  * 3. Capturing microphone audio and sending to OpenAI
  * 4. Playing back AI audio response (single audio path - WebRTC only)
- * 5. Clean disconnection of all resources
+ * 5. Capturing transcripts via data channel events
+ * 6. Clean disconnection of all resources
  */
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
 
 export type VoiceStatus = "idle" | "connecting" | "connected" | "error";
+
+interface UseRealtimeVoiceOptions {
+  onTranscript?: (role: "user" | "echo", text: string) => void;
+}
 
 interface UseRealtimeVoiceReturn {
   status: VoiceStatus;
@@ -22,7 +27,7 @@ interface UseRealtimeVoiceReturn {
   isConnected: boolean;
 }
 
-export function useRealtimeVoice(): UseRealtimeVoiceReturn {
+export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtimeVoiceReturn {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -34,6 +39,12 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const isConnectingRef = useRef(false);
   const hasConnectedRef = useRef(false);
+
+  // Keep transcript callback in a ref so the data channel handler always sees latest
+  const onTranscriptRef = useRef(options?.onTranscript);
+  useEffect(() => {
+    onTranscriptRef.current = options?.onTranscript;
+  }, [options?.onTranscript]);
 
   // Cleanup function that ensures all resources are released
   const cleanup = useCallback(() => {
@@ -177,6 +188,31 @@ export function useRealtimeVoice(): UseRealtimeVoiceReturn {
 
       dataChannel.onerror = (err) => {
         console.error("[RealtimeVoice] Data channel error:", err);
+      };
+
+      // Step 6b: Parse transcript events from data channel
+      dataChannel.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          // User speech transcript (requires input_audio_transcription in session config)
+          if (
+            msg.type === "conversation.item.input_audio_transcription.completed" &&
+            msg.transcript?.trim()
+          ) {
+            console.log("[RealtimeVoice] User transcript:", msg.transcript);
+            onTranscriptRef.current?.("user", msg.transcript.trim());
+          }
+          // Echo (AI) speech transcript
+          else if (
+            msg.type === "response.audio_transcript.done" &&
+            msg.transcript?.trim()
+          ) {
+            console.log("[RealtimeVoice] Echo transcript:", msg.transcript);
+            onTranscriptRef.current?.("echo", msg.transcript.trim());
+          }
+        } catch {
+          // Ignore parse errors from non-JSON messages
+        }
       };
 
       // Step 7: Create offer and set local description

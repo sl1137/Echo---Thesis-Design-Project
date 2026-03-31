@@ -1,408 +1,567 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRealtimeVoice, VoiceStatus } from "../hooks/useRealtimeVoice";
 
-// ─── Types ───────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────
 interface Message {
   id: string;
   role: "user" | "echo";
   text: string;
 }
 
-type ChatMode = "text" | "voice";
+type ChatMode = "text" | "voice-input" | "voice-full";
 
-// Empty initial state - AI will generate opening message
-const INITIAL_MESSAGES: Message[] = [];
+interface CardData {
+  summary: string;
+  emotion_tags: string[];
+  insight: string;
+  validation_sentence: string;
+}
 
-// ─── Chat Header ─────────────────────────────────────────────────────
-function ChatHeader({ onBack }: { onBack: () => void }) {
+const PAGE_BG = "radial-gradient(ellipse at 50% 12%, #dde5ff 0%, #e9ecfc 45%, #eeeaf8 100%)";
+
+// ─── Orb Image ────────────────────────────────────────────────────────
+function Orb({
+  size,
+  animate = false,
+  glow = false,
+}: {
+  size: number;
+  animate?: boolean;
+  glow?: boolean;
+}) {
   return (
-    <header className="flex items-center gap-3 px-4 pt-5 pb-3">
+    <img
+      src="/orb.png"
+      alt="Echo"
+      draggable={false}
+      style={{
+        width: size,
+        height: size,
+        objectFit: "cover",
+        borderRadius: "50%",
+        flexShrink: 0,
+        animation: animate ? "float 6s ease-in-out infinite" : undefined,
+        filter: glow
+          ? "drop-shadow(0 0 28px rgba(160,180,255,0.55)) drop-shadow(0 0 56px rgba(140,160,240,0.30))"
+          : "drop-shadow(0 4px 14px rgba(140,160,240,0.25))",
+        transition: "filter 0.5s ease",
+      }}
+    />
+  );
+}
+
+// ─── Chat Header ──────────────────────────────────────────────────────
+function ChatHeader({
+  onBack,
+  onEndChat,
+  isEnding,
+}: {
+  onBack: () => void;
+  onEndChat: () => void;
+  isEnding: boolean;
+}) {
+  return (
+    <header className="relative flex items-center justify-between px-4 pt-12 pb-3 flex-shrink-0">
+      {/* Back */}
       <button
         onClick={onBack}
-        className="w-10 h-10 rounded-full glass flex items-center justify-center shadow-echo-sm transition-all active:scale-95"
+        className="w-9 h-9 flex items-center justify-center transition-all active:scale-90 z-10"
+        style={{
+          background: "rgba(255,255,255,0.72)",
+          borderRadius: 12,
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.5)",
+        }}
         aria-label="Back"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E1F5E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a3e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
         </svg>
       </button>
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-echo-purple flex items-center justify-center">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-            <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-            <circle cx="9" cy="10" r="1" fill="white" />
-            <circle cx="15" cy="10" r="1" fill="white" />
-          </svg>
-        </div>
-        <span className="text-base font-semibold text-echo-ink">Echo</span>
-      </div>
+
+      {/* Title — absolutely centered so it's always in the middle */}
+      <span
+        className="absolute left-0 right-0 text-center text-[17px] font-bold pointer-events-none"
+        style={{ color: "#1a1a3e" }}
+      >
+        Chat with Echo
+      </span>
+
+      {/* End Chat */}
+      <button
+        onClick={onEndChat}
+        disabled={isEnding}
+        className="px-4 h-9 flex items-center text-[13px] font-semibold transition-all active:scale-95 disabled:opacity-50"
+        style={{
+          background: "rgba(255,255,255,0.72)",
+          color: "#1a1a3e",
+          borderRadius: 999,
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.5)",
+        }}
+      >
+        {isEnding ? (
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 border-2 border-current/40 border-t-current rounded-full animate-spin" />
+            Saving…
+          </span>
+        ) : (
+          "End Chat"
+        )}
+      </button>
     </header>
   );
 }
 
-// ─── Chat Bubble ─────────────────────────────────────────────────────
-function ChatBubble({ message }: { message: Message }) {
-  const isEcho = message.role === "echo";
+// ─── Validation Card Overlay ──────────────────────────────────────────
+function ValidationCardOverlay({
+  card,
+  messages,
+  onClose,
+}: {
+  card: CardData;
+  messages: Message[];
+  onClose: () => void;
+}) {
+  const [showTranscript, setShowTranscript] = useState(false);
+  const timeLabel = new Date().toLocaleDateString("en-US", {
+    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+  });
 
   return (
-    <div className={`flex ${isEcho ? "justify-start" : "justify-end"}`}>
-      <div
-        className={`max-w-[80%] px-4 py-3 ${
-          isEcho
-            ? "bg-white text-echo-ink shadow-echo-sm"
-            : "bg-echo-purple text-white shadow-echo-sm"
-        }`}
-        style={{
-          borderRadius: isEcho
-            ? "var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-sm)"
-            : "var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-md)",
-        }}
-      >
-        <p className="text-[15px] leading-[1.6]">{message.text}</p>
+    <div className="absolute inset-0 z-50 flex flex-col animate-fade-in" style={{ background: "var(--surface)" }}>
+      <div className="flex items-center justify-between px-5 pt-6 pb-4 flex-shrink-0">
+        <div>
+          <h2 className="text-[20px] font-bold" style={{ fontFamily: "var(--font-serif)", color: "var(--on_surface)" }}>Session Card</h2>
+          <p className="text-[12px] mt-0.5" style={{ color: "var(--on_surface)", opacity: 0.45 }}>{timeLabel}</p>
+        </div>
+        <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90" style={{ background: "var(--surface_container)" }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-8">
+        <div className="mb-5 p-5" style={{ background: "linear-gradient(135deg, var(--secondary_container) 0%, var(--primary_container) 100%)", borderRadius: "var(--radius-xl)" }}>
+          <p className="text-[11px] font-bold uppercase tracking-widest mb-3 opacity-60" style={{ color: "var(--on_surface)" }}>You are seen</p>
+          <p className="text-[17px] leading-relaxed font-medium" style={{ fontFamily: "var(--font-serif)", color: "var(--on_surface)" }}>"{card.validation_sentence}"</p>
+        </div>
+
+        {card.emotion_tags.length > 0 && (
+          <div className="mb-5">
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2.5 opacity-45" style={{ color: "var(--on_surface)" }}>Emotions</p>
+            <div className="flex flex-wrap gap-2">
+              {card.emotion_tags.map((tag) => (
+                <span key={tag} className="px-3 py-1.5 text-[13px] font-semibold" style={{ background: "var(--surface_container)", color: "var(--on_surface)", borderRadius: "var(--radius-pill)" }}>{tag}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mb-4 p-4" style={{ background: "var(--surface_container_low)", borderRadius: "var(--radius-lg)" }}>
+          <p className="text-[11px] font-bold uppercase tracking-widest mb-2 opacity-45" style={{ color: "var(--on_surface)" }}>Summary</p>
+          <p className="text-[14px] leading-relaxed" style={{ color: "var(--on_surface)" }}>{card.summary}</p>
+        </div>
+
+        <div className="mb-5 p-4" style={{ background: "var(--surface_container_low)", borderRadius: "var(--radius-lg)" }}>
+          <p className="text-[11px] font-bold uppercase tracking-widest mb-2 opacity-45" style={{ color: "var(--on_surface)" }}>Insight</p>
+          <p className="text-[14px] leading-relaxed" style={{ color: "var(--on_surface)" }}>{card.insight}</p>
+        </div>
+
+        <button onClick={() => setShowTranscript((v) => !v)} className="w-full flex items-center justify-between py-3 px-4 mb-2 transition-all active:scale-[0.99]" style={{ background: "var(--surface_container_low)", borderRadius: "var(--radius-lg)" }}>
+          <span className="text-[13px] font-semibold" style={{ color: "var(--on_surface)", opacity: 0.6 }}>Full Transcript</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: "var(--on_surface)", opacity: 0.4, transform: showTranscript ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+
+        {showTranscript && (
+          <div className="p-4 space-y-3 animate-fade-in" style={{ background: "var(--surface_container_low)", borderRadius: "var(--radius-lg)" }}>
+            {messages.length === 0 ? (
+              <p className="text-[13px] text-center opacity-40" style={{ color: "var(--on_surface)" }}>No transcript recorded</p>
+            ) : messages.map((m) => (
+              <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className="max-w-[85%] px-3 py-2 text-[13px] leading-relaxed" style={{ borderRadius: "var(--radius-md)", background: m.role === "user" ? "var(--secondary_container)" : "var(--surface_container_lowest)", color: "var(--on_surface)" }}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button onClick={onClose} className="w-full mt-5 py-3.5 text-[14px] font-semibold transition-all active:scale-[0.98]"
+          style={{ background: "rgba(255,245,243,0.85)", color: "#2D1B4E", borderRadius: "var(--radius-lg)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1.5px solid #2D1B4E" }}>
+          Return to Island
+        </button>
       </div>
     </div>
   );
 }
 
-// ─── Chat Message List ───────────────────────────────────────────────
+// ─── Chat Bubble ──────────────────────────────────────────────────────
+function ChatBubble({ message }: { message: Message }) {
+  const isEcho = message.role === "echo";
+  return (
+    <div className={`flex items-end gap-2 ${isEcho ? "justify-start" : "justify-end"}`}>
+      {isEcho && <Orb size={42} />}
+      <div
+        style={{
+          maxWidth: "72%",
+          padding: "10px 16px",
+          background: "rgba(255,255,255,0.88)",
+          color: "#1a1a3e",
+          borderRadius: isEcho ? "18px 18px 18px 4px" : "18px 18px 4px 18px",
+          fontSize: 15,
+          lineHeight: 1.55,
+          boxShadow: "0 1px 6px rgba(100,120,200,0.08)",
+        }}
+      >
+        {message.text}
+      </div>
+      {!isEcho && (
+        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(175,180,210,0.5)", flexShrink: 0 }} />
+      )}
+    </div>
+  );
+}
+
+// ─── Chat Message List ────────────────────────────────────────────────
 function ChatMessages({ messages }: { messages: Message[] }) {
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   return (
-    <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-      {messages.map((msg) => (
-        <ChatBubble key={msg.id} message={msg} />
-      ))}
+    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      {messages.map((msg) => <ChatBubble key={msg.id} message={msg} />)}
       <div ref={bottomRef} />
     </div>
   );
 }
 
-// ─── Text Input Bar ──────────────────────────────────────────────────
+// ─── Text Input Bar ───────────────────────────────────────────────────
 function TextInputBar({
-  value,
-  onChange,
-  onSend,
-  onSwitchToVoice,
-  isLoading,
+  value, onChange, onSend, onSwitchToVoiceInput, onSwitchToVoiceFull, isLoading,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
-  onSwitchToVoice: () => void;
+  onSwitchToVoiceInput: () => void;
+  onSwitchToVoiceFull: () => void;
   isLoading: boolean;
 }) {
   return (
-    <div className="px-4 pb-6 pt-3">
+    <div className="px-4 pb-8 pt-2 flex-shrink-0">
       <div
-        className="flex items-center gap-2 bg-white px-3 py-2 shadow-echo-lg"
-        style={{ borderRadius: "var(--radius-lg)" }}
+        className="flex items-center gap-2 px-4"
+        style={{
+          background: "rgba(255,255,255,0.82)",
+          borderRadius: 24,
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          boxShadow: "0 2px 16px rgba(100,120,220,0.10)",
+          height: 52,
+        }}
       >
-        {/* Microphone button — switches to voice mode */}
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && value.trim()) { e.preventDefault(); onSend(); } }}
+          placeholder="Message..."
+          className="flex-1 bg-transparent text-[15px] outline-none"
+          style={{ color: "#1a1a3e" }}
+        />
+        {/* Mic → voice-input */}
         <button
-          onClick={onSwitchToVoice}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-echo-lavender flex items-center justify-center transition-colors hover:bg-echo-blush active:scale-95"
-          aria-label="Switch to voice mode"
+          onClick={onSwitchToVoiceInput}
+          className="w-9 h-9 flex items-center justify-center flex-shrink-0 transition-all active:scale-90"
+          style={{ background: "rgba(80,90,160,0.10)", borderRadius: "50%" }}
+          aria-label="Voice input"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6F4BD8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3a3a7a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
             <line x1="12" y1="19" x2="12" y2="22" />
           </svg>
         </button>
-
-        {/* Text input */}
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && value.trim()) {
-              e.preventDefault();
-              onSend();
-            }
-          }}
-          placeholder="Type how you're feeling..."
-          className="flex-1 bg-transparent text-[15px] text-echo-ink placeholder:text-echo-ink/30 outline-none py-2"
-        />
-
-        {/* Send button */}
+        {/* Waveform → voice-full */}
         <button
-          onClick={onSend}
-          disabled={!value.trim() || isLoading}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-echo-purple flex items-center justify-center transition-all hover:bg-echo-purple-light active:scale-95 disabled:opacity-25 disabled:pointer-events-none"
-          aria-label="Send message"
+          onClick={onSwitchToVoiceFull}
+          className="w-9 h-9 flex items-center justify-center flex-shrink-0 transition-all active:scale-90"
+          style={{ background: "rgba(80,90,160,0.10)", borderRadius: "50%" }}
+          aria-label="Voice full mode"
         >
-          {isLoading ? (
-            <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13" />
-              <polygon points="22 2 15 22 11 13 2 9 22 2" />
-            </svg>
-          )}
+          <svg width="18" height="13" viewBox="0 0 22 16" fill="none">
+            <rect x="0"    y="5"  width="3.5" height="6"  rx="1.75" fill="#3a3a7a" />
+            <rect x="4.5"  y="2"  width="3.5" height="12" rx="1.75" fill="#3a3a7a" />
+            <rect x="9"    y="0"  width="3.5" height="16" rx="1.75" fill="#3a3a7a" />
+            <rect x="13.5" y="2"  width="3.5" height="12" rx="1.75" fill="#3a3a7a" />
+            <rect x="18"   y="5"  width="3.5" height="6"  rx="1.75" fill="#3a3a7a" />
+          </svg>
         </button>
       </div>
     </div>
   );
 }
 
-// ─── Voice Mode UI ───────────────────────────────────────────────────
-function VoiceMode({
-  onSwitchToText,
-  onDisconnect,
+// ─── Waveform Bars ────────────────────────────────────────────────────
+// Matches image 6: 5 pill-shaped bars, bell-curve heights, dark color, animated
+function WaveformBars({ playing }: { playing: boolean }) {
+  // Heights in px: outer short, mid tall, center tallest
+  const bars = [
+    { h: 28, delay: "0.00s" },
+    { h: 52, delay: "0.15s" },
+    { h: 72, delay: "0.30s" },
+    { h: 52, delay: "0.45s" },
+    { h: 28, delay: "0.60s" },
+  ];
+  return (
+    <div className="flex items-center gap-[6px]">
+      {bars.map((bar, i) => (
+        <div
+          key={i}
+          style={{
+            width: 7,
+            height: bar.h,
+            borderRadius: 999,
+            background: "#1a1a3e",
+            transformOrigin: "center",
+            animation: playing ? `voiceBar 1.1s ease-in-out ${bar.delay} infinite` : "none",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Voice Input Mode ─────────────────────────────────────────────────
+function VoiceInputMode({
+  isRecording,
+  onStop,
+  messages,
 }: {
-  onSwitchToText: () => void;
-  onDisconnect: () => void;
+  isRecording: boolean;
+  onStop: () => void;
+  messages: Message[];
 }) {
-  const { status, error, connect, disconnect } = useRealtimeVoice();
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Chat messages scrollable at top */}
+      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-2 space-y-3">
+        {messages.map((msg) => <ChatBubble key={msg.id} message={msg} />)}
+      </div>
+
+      {/* Waveform — centered in remaining space */}
+      <div className="flex-shrink-0 flex flex-col items-center justify-center gap-5 py-10">
+        <WaveformBars playing={isRecording} />
+      </div>
+
+      {/* Bottom bar */}
+      <div className="flex-shrink-0 px-4 pb-8">
+        <div
+          className="flex items-center gap-3 px-4"
+          style={{
+            background: "rgba(255,255,255,0.82)",
+            borderRadius: 24,
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            boxShadow: "0 2px 16px rgba(100,120,220,0.10)",
+            height: 52,
+          }}
+        >
+          <span className="flex-1 text-[15px] select-none" style={{ color: "rgba(26,26,62,0.35)" }}>
+            Generating transcript...
+          </span>
+          {/* Stop button */}
+          <button
+            onClick={onStop}
+            className="w-9 h-9 flex items-center justify-center flex-shrink-0 transition-all active:scale-90"
+            style={{ background: "#1a1a3e", borderRadius: "50%" }}
+            aria-label="Stop recording"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12">
+              <rect x="0" y="0" width="12" height="12" rx="2" fill="white" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Voice Full Mode ──────────────────────────────────────────────────
+function VoiceFullMode({
+  status,
+  error,
+  onConnect,
+  onDisconnect,
+  onSwitchToText,
+  onEndChat,
+  lastEchoText,
+}: {
+  status: VoiceStatus;
+  error: string | null;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  onSwitchToText: () => void;
+  onEndChat: () => void;
+  lastEchoText: string;
+}) {
   const isActive = status === "connected";
-  const prevStatusRef = useRef<VoiceStatus>(status);
-
-  // Auto-connect on mount
-  useEffect(() => {
-    console.log("[VoiceMode] Mounted, connecting...");
-    connect();
-    return () => {
-      console.log("[VoiceMode] Unmounting, disconnecting...");
-      disconnect();
-    };
-  }, [connect, disconnect]);
-
-  // Track status changes for debugging
-  useEffect(() => {
-    if (prevStatusRef.current !== status) {
-      console.log("[VoiceMode] Status changed:", prevStatusRef.current, "->", status);
-      prevStatusRef.current = status;
-    }
-  }, [status]);
-
-  const handleClick = () => {
-    if (isActive) {
-      console.log("[VoiceMode] User tapped stop");
-      disconnect();
-    } else if (status !== "connecting") {
-      console.log("[VoiceMode] User tapped start");
-      connect();
-    }
-  };
-
-  const statusText = {
-    idle: "轻触开始对话",
-    connecting: "连接中...",
-    connected: "正在倾听...",
-    error: "连接失败",
-  }[status];
+  const isConnecting = status === "connecting";
 
   return (
-    <div
-      className="flex-1 flex flex-col items-center justify-center px-6 pb-10 relative"
-      style={{
-        background:
-          "linear-gradient(180deg, #E9E2F8 0%, #DDEBFA 50%, #E9E2F8 100%)",
-      }}
-    >
-      {/* Status text */}
-      <p className="text-[15px] text-echo-ink-secondary font-medium mb-8 animate-fade-in relative z-10">
-        {statusText}
-      </p>
-
-      {/* Error message */}
-      {error && (
-        <p className="text-[13px] text-red-400 mb-4 text-center animate-fade-in relative z-10">
-          {error}
-        </p>
-      )}
-
-      {/* Character container */}
-      <div className="relative mb-12">
-        {/* Outer glow ring - breathes when active */}
-        <div
-          className={`absolute -inset-16 rounded-full transition-all duration-700 ${
-            isActive
-              ? "bg-yellow-400/20 animate-breathe"
-              : status === "connecting"
-              ? "bg-yellow-400/10"
-              : "bg-yellow-400/5"
-          }`}
-        />
-        {/* Second ring */}
-        <div
-          className={`absolute -inset-10 rounded-full transition-all duration-700 ${
-            isActive
-              ? "bg-yellow-400/15 animate-breathe"
-              : status === "connecting"
-              ? "bg-yellow-400/8"
-              : "bg-yellow-400/3"
-          }`}
-          style={{ animationDelay: "0.3s" }}
-        />
-        {/* Third ring */}
-        <div
-          className={`absolute -inset-4 rounded-full transition-all duration-700 ${
-            isActive
-              ? "bg-yellow-400/10 animate-breathe"
-              : status === "connecting"
-              ? "bg-yellow-400/5"
-              : "bg-transparent"
-          }`}
-          style={{ animationDelay: "0.6s" }}
-        />
-
-        {/* Character image button - Star character */}
-        <button
-          onClick={handleClick}
-          disabled={status === "connecting"}
-          className={`relative transition-all duration-500 active:scale-95 ${
-            isActive ? "animate-glow" : ""
-          }`}
-          style={{
-            filter: status === "connecting"
-              ? "brightness(0.8)"
-              : isActive
-              ? "brightness(1.1) drop-shadow(0 0 20px rgba(255,215,100,0.5))"
-              : "brightness(1)",
-            transform: status === "connecting" ? "scale(0.95)" : "scale(1)",
-            opacity: status === "connecting" ? 0.8 : 1,
-          }}
-          aria-label={isActive ? "停止倾听" : "开始倾听"}
-        >
-          {/* Star character image - no container box */}
-          <img
-            src="/star-character.png"
-            alt="Echo 语音助手"
-            className="w-40 h-40 object-contain"
-            draggable={false}
-            style={{
-              filter: isActive
-                ? "drop-shadow(0 0 20px rgba(255,215,100,0.6))"
-                : status === "connecting"
-                ? "drop-shadow(0 0 10px rgba(255,215,100,0.3))"
-                : "none",
-            }}
-          />
-
-          {/* Connecting overlay */}
-          {status === "connecting" && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-12 h-12 border-3 border-white/60 border-t-white rounded-full animate-spin" />
-            </div>
-          )}
-
-          {/* Active indicator - subtle pulse dot */}
+    <div className="flex-1 flex flex-col w-full">
+      {/* Orb + subtitle — vertically centered */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8 w-full">
+        {/* Outer glow ring when active */}
+        <div className="relative flex items-center justify-center">
           {isActive && (
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-yellow-400 rounded-full animate-pulse shadow-lg" />
+            <div
+              className="absolute rounded-full animate-breathe pointer-events-none"
+              style={{
+                width: 360,
+                height: 360,
+                background: "radial-gradient(circle, rgba(170,190,255,0.22) 0%, transparent 70%)",
+              }}
+            />
           )}
-        </button>
+          {isConnecting && (
+            <div
+              className="absolute rounded-full animate-breathe pointer-events-none"
+              style={{
+                width: 340,
+                height: 340,
+                background: "radial-gradient(circle, rgba(170,190,255,0.12) 0%, transparent 70%)",
+              }}
+            />
+          )}
+          <Orb size={280} animate glow={isActive} />
+        </div>
+
+        {/* Echo subtitle — last spoken text */}
+        <p
+          className="text-center text-[17px] leading-relaxed"
+          style={{
+            color: "#1a1a3e",
+            maxWidth: 280,
+            minHeight: 56,
+            opacity: lastEchoText ? 1 : 0,
+            transition: "opacity 0.4s ease",
+          }}
+        >
+          {lastEchoText || " "}
+        </p>
+
+        {error && <p className="text-[12px] text-red-400 text-center">{error}</p>}
       </div>
 
-      {/* Hint text */}
-      <p className="text-[12px] text-echo-ink-secondary/60 mb-6">
-        {isActive ? "再次点击结束对话" : "点击角色开始对话"}
-      </p>
+      {/* Bottom controls — centered row */}
+      <div className="flex-shrink-0 w-full flex items-center justify-center gap-6 pb-12 pt-2">
+        {/* Chat icon button */}
+        <button
+          onClick={() => { onDisconnect(); onSwitchToText(); }}
+          className="w-12 h-12 flex items-center justify-center transition-all active:scale-90"
+          style={{
+            background: "rgba(255,255,255,0.72)",
+            borderRadius: 14,
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            border: "1px solid rgba(255,255,255,0.5)",
+          }}
+          aria-label="Switch to text"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3a3a7a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </button>
 
-      {/* Switch to text mode */}
-      <button
-        onClick={() => {
-          console.log("[VoiceMode] Switching to text mode");
-          onDisconnect();
-          onSwitchToText();
-        }}
-        className="flex items-center gap-2 px-5 py-2.5 glass shadow-echo-sm text-[13px] font-medium text-echo-ink-secondary transition-all active:scale-95"
-        style={{ borderRadius: "var(--radius-pill)" }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-        切换到文字模式
-      </button>
+        {/* Mic button — large pink/mauve circle */}
+        <button
+          onClick={() => { if (isActive) onDisconnect(); else if (!isConnecting) onConnect(); }}
+          disabled={isConnecting}
+          className="w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-60"
+          style={{
+            background: isActive
+              ? "linear-gradient(135deg, #c8a8e0, #b090cc)"
+              : "rgba(200,175,225,0.75)",
+            boxShadow: isActive
+              ? "0 0 0 10px rgba(190,160,220,0.18), 0 4px 20px rgba(170,140,210,0.3)"
+              : "0 2px 12px rgba(170,140,210,0.22)",
+          }}
+          aria-label={isActive ? "Stop" : "Start voice"}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="22" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
 
-// ─── ChatScreen (exported) ───────────────────────────────────────────
-interface ChatScreenProps {
-  onBack: () => void;
-}
-
-export default function ChatScreen({ onBack }: ChatScreenProps) {
+// ─── ChatScreen ───────────────────────────────────────────────────────
+export default function ChatScreen({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<ChatMode>("text");
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const [validationCard, setValidationCard] = useState<CardData | null>(null);
+  const [lastEchoText, setLastEchoText] = useState("");
 
-  // Use ref to ensure opening message is only fetched once
+  // voice-input recording
+  const [isRecording, setIsRecording] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  // Voice-full hook
+  const handleTranscript = useCallback((role: "user" | "echo", text: string) => {
+    if (role === "echo") setLastEchoText(text);
+    setMessages((prev) => [
+      ...prev,
+      { id: `voice-${Date.now()}-${Math.random()}`, role, text },
+    ]);
+  }, []);
+
+  const { status: voiceStatus, error: voiceError, connect: connectVoice, disconnect: disconnectVoice } =
+    useRealtimeVoice({ onTranscript: handleTranscript });
+
+  // Opening message
   const hasOpenedRef = useRef(false);
-
-  // Fetch opening message from AI on first load
   useEffect(() => {
-    if (mode !== "text") return;
-    if (hasOpenedRef.current) return;
-    if (messages.length > 0) return;
-
+    if (hasOpenedRef.current || messages.length > 0) return;
     hasOpenedRef.current = true;
     setIsLoading(true);
-
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: "[OPENING]",
-        conversation: [],
-      }),
+      body: JSON.stringify({ message: "[OPENING]", conversation: [] }),
     })
-      .then((res) => res.json())
+      .then((r) => r.json())
       .then((data) => {
-        const bubbles = data.bubbles || ["…"];
-        const timestamp = Date.now();
-
-        // Add each bubble, but skip if same message already exists
-        bubbles.forEach((bubbleText: string, index: number) => {
+        const bubbles: string[] = data.bubbles || ["Hi there! How's going?"];
+        const ts = Date.now();
+        bubbles.forEach((text, i) => {
           setMessages((prev) => {
-            // Check if this exact message already exists
-            const exists = prev.some(m => m.role === "echo" && m.text === bubbleText);
-            if (exists) return prev;
-
-            const echoMsg: Message = {
-              id: `${timestamp + index}`,
-              role: "echo",
-              text: bubbleText,
-            };
-            return [...prev, echoMsg];
+            if (prev.some((m) => m.text === text)) return prev;
+            return [...prev, { id: `${ts + i}`, role: "echo", text }];
           });
         });
       })
-      .catch((err) => {
-        console.error("Opening message error:", err);
-        setMessages((prev) => {
-          const exists = prev.some(m => m.role === "echo" && m.text === "hi～我是 Echo，想到什么都可以和我说说。");
-          if (exists) return prev;
-
-          const echoMsg: Message = {
-            id: "1",
-            role: "echo",
-            text: "hi～我是 Echo，想到什么都可以和我说说。",
-          };
-          return [...prev, echoMsg];
-        });
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .catch(() => setMessages([{ id: "1", role: "echo", text: "Hi there! How's going?" }]))
+      .finally(() => setIsLoading(false));
   }, []);
-  // Returns array of bubbles (1-3 short messages)
-  async function sendToOpenAI(userText: string): Promise<string[]> {
-    console.log("[sendToOpenAI] Sending message:", userText);
-    console.log("[sendToOpenAI] Conversation length:", messages.length);
 
-    const response = await fetch("/api/chat", {
+  // Send text
+  async function sendToEcho(userText: string): Promise<string[]> {
+    const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -410,104 +569,138 @@ export default function ChatScreen({ onBack }: ChatScreenProps) {
         conversation: messages.slice(-20).map((m) => ({ role: m.role, content: m.text })),
       }),
     });
-
-    console.log("[sendToOpenAI] Response status:", response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to get response: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log("[sendToOpenAI] Response data:", JSON.stringify(data));
-
-    // Handle various response formats
-    if (data.bubbles && Array.isArray(data.bubbles) && data.bubbles.length > 0) {
-      // Filter out fallback messages
-      const validBubbles = data.bubbles.filter((b: string) => b && b.trim() && b !== "…");
-      return validBubbles.length > 0 ? validBubbles : ["嗯，我接到了。"];
-    }
-    if (data.response) {
-      return [data.response];
-    }
-    // Fallback
-    return ["嗯，我接到了。"];
+    if (!res.ok) throw new Error("Chat error");
+    const data = await res.json();
+    return data.bubbles?.filter((b: string) => b?.trim()) || [data.response || "I'm here."];
   }
 
   function handleSend() {
     if (!input.trim() || isLoading) return;
-
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      text: input.trim(),
-    };
+    const userMsg: Message = { id: Date.now().toString(), role: "user", text: input.trim() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
-
-    // Call OpenAI API for real response
-    sendToOpenAI(userMsg.text)
+    sendToEcho(userMsg.text)
       .then((bubbles) => {
-        // Add each bubble as a separate message for natural chat rhythm
-        const timestamp = Date.now();
-        bubbles.forEach((bubbleText: string, index: number) => {
-          const echoMsg: Message = {
-            id: `${timestamp + 1 + index}`,
-            role: "echo",
-            text: bubbleText,
-          };
-          setMessages((prev) => [...prev, echoMsg]);
-        });
+        const ts = Date.now();
+        bubbles.forEach((text, i) => setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text }]));
       })
-      .catch((err) => {
-        console.error("Text mode error:", err);
-        const errorMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "echo",
-          text: "嗯，我接到了。",
-        };
-        setMessages((prev) => [...prev, errorMsg]);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .catch(() => setMessages((prev) => [...prev, { id: `${Date.now()}`, role: "echo", text: "I'm here." }]))
+      .finally(() => setIsLoading(false));
   }
 
-  function handleDisconnect() {
-    // Voice session cleanup handled by hook
+  // End chat
+  async function handleEndChat() {
+    if (isEnding) return;
+    if (mode === "voice-input") stopRecording();
+    if (mode === "voice-full") disconnectVoice();
+    setIsEnding(true);
+    try {
+      const res = await fetch("/api/validation-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversation: messages.map((m) => ({ role: m.role, content: m.text })) }),
+      });
+      setValidationCard(await res.json());
+    } catch {
+      setValidationCard({
+        summary: "You took a moment to check in with yourself today.",
+        emotion_tags: ["present"],
+        insight: "Showing up, even briefly, is an act of care toward yourself.",
+        validation_sentence: "Whatever you're carrying right now — it makes sense that it feels heavy.",
+      });
+    } finally {
+      setIsEnding(false);
+    }
+  }
+
+  // Voice-input recording
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        if (blob.size < 500) { setMode("text"); return; }
+        setIsLoading(true);
+        try {
+          const form = new FormData();
+          form.append("audio", blob, "recording.webm");
+          const res = await fetch("/api/transcribe", { method: "POST", body: form });
+          const { text } = await res.json();
+          if (!text?.trim()) { setMode("text"); return; }
+          const userMsg: Message = { id: Date.now().toString(), role: "user", text: text.trim() };
+          setMessages((prev) => [...prev, userMsg]);
+          setMode("text");
+          const bubbles = await sendToEcho(text.trim());
+          const ts = Date.now();
+          bubbles.forEach((t2, i) => setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text: t2 }]));
+        } catch {
+          setMode("text");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      recorder.start();
+      recorderRef.current = recorder;
+      setIsRecording(true);
+    } catch {
+      setMode("text");
+    }
+  }
+
+  function stopRecording() {
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      recorderRef.current.stop();
+    }
+    setIsRecording(false);
   }
 
   return (
     <div
-      className="flex flex-col h-dvh max-w-md mx-auto overflow-hidden"
-      style={{
-        background:
-          mode === "text"
-            ? "linear-gradient(180deg, #F5F2FA 0%, #F0ECF7 100%)"
-            : "transparent",
-      }}
+      className="flex flex-col h-dvh max-w-md mx-auto overflow-hidden relative"
+      style={{ background: PAGE_BG }}
     >
-      <ChatHeader onBack={onBack} />
+      {validationCard && (
+        <ValidationCardOverlay card={validationCard} messages={messages} onClose={onBack} />
+      )}
 
-      {mode === "text" ? (
+      <ChatHeader onBack={onBack} onEndChat={handleEndChat} isEnding={isEnding} />
+
+      {mode === "text" && (
         <>
           <ChatMessages messages={messages} />
           <TextInputBar
             value={input}
             onChange={setInput}
             onSend={handleSend}
-            onSwitchToVoice={() => {
-              handleDisconnect();
-              setMode("voice");
-            }}
+            onSwitchToVoiceInput={() => { setMode("voice-input"); startRecording(); }}
+            onSwitchToVoiceFull={() => setMode("voice-full")}
             isLoading={isLoading}
           />
         </>
-      ) : (
-        <VoiceMode
-          onSwitchToText={() => setMode("text")}
-          onDisconnect={handleDisconnect}
+      )}
+
+      {mode === "voice-input" && (
+        <VoiceInputMode
+          isRecording={isRecording}
+          onStop={() => { stopRecording(); setMode("text"); }}
+          messages={messages}
+        />
+      )}
+
+      {mode === "voice-full" && (
+        <VoiceFullMode
+          status={voiceStatus}
+          error={voiceError}
+          onConnect={connectVoice}
+          onDisconnect={disconnectVoice}
+          onSwitchToText={() => { disconnectVoice(); setMode("text"); }}
+          onEndChat={handleEndChat}
+          lastEchoText={lastEchoText}
         />
       )}
     </div>

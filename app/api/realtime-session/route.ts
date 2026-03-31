@@ -34,6 +34,7 @@ export async function POST() {
           model,
           voice: "shimmer",
           instructions: REALTIME_VOICE_SYSTEM,
+          input_audio_transcription: { model: "whisper-1" },
         }),
       }
     );

@@ -40,6 +40,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} ${plusJakartaSans.variable} antialiased`}
+        suppressHydrationWarning
       >
         {children}
       </body>
