@@ -25,12 +25,20 @@ const PAGE_BG = "radial-gradient(ellipse at 50% 12%, #dde5ff 0%, #e9ecfc 45%, #e
 function Orb({
   size,
   animate = false,
+  live = false,
   glow = false,
 }: {
   size: number;
   animate?: boolean;
+  live?: boolean;   // float + slow rotation for voice-full mode
   glow?: boolean;
 }) {
+  const anim = live
+    ? "orbLive 22s ease-in-out infinite"
+    : animate
+    ? "float 6s ease-in-out infinite"
+    : undefined;
+
   return (
     <img
       src="/orb.png"
@@ -42,9 +50,9 @@ function Orb({
         objectFit: "cover",
         borderRadius: "50%",
         flexShrink: 0,
-        animation: animate ? "float 6s ease-in-out infinite" : undefined,
+        animation: anim,
         filter: glow
-          ? "drop-shadow(0 0 28px rgba(160,180,255,0.55)) drop-shadow(0 0 56px rgba(140,160,240,0.30))"
+          ? "drop-shadow(0 0 36px rgba(160,180,255,0.65)) drop-shadow(0 0 70px rgba(140,160,240,0.35))"
           : "drop-shadow(0 4px 14px rgba(140,160,240,0.25))",
         transition: "filter 0.5s ease",
       }}
@@ -415,17 +423,21 @@ function VoiceFullMode({
   const isConnecting = status === "connecting";
 
   return (
-    <div className="flex-1 flex flex-col w-full">
-      {/* Orb + subtitle — vertically centered */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8 w-full">
+    // relative container so we can absolutely-position the bottom buttons
+    <div className="flex-1 relative" style={{ minWidth: 0 }}>
+      {/* Orb + subtitle — fill all space above the button row (120px) */}
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center gap-6"
+        style={{ bottom: 120 }}
+      >
         {/* Outer glow ring when active */}
         <div className="relative flex items-center justify-center">
           {isActive && (
             <div
               className="absolute rounded-full animate-breathe pointer-events-none"
               style={{
-                width: 360,
-                height: 360,
+                width: 400,
+                height: 400,
                 background: "radial-gradient(circle, rgba(170,190,255,0.22) 0%, transparent 70%)",
               }}
             />
@@ -434,22 +446,22 @@ function VoiceFullMode({
             <div
               className="absolute rounded-full animate-breathe pointer-events-none"
               style={{
-                width: 340,
-                height: 340,
+                width: 380,
+                height: 380,
                 background: "radial-gradient(circle, rgba(170,190,255,0.12) 0%, transparent 70%)",
               }}
             />
           )}
-          <Orb size={280} animate glow={isActive} />
+          <Orb size={320} live glow={isActive} />
         </div>
 
-        {/* Echo subtitle — last spoken text */}
+        {/* Echo subtitle */}
         <p
-          className="text-center text-[17px] leading-relaxed"
+          className="text-center text-[17px] leading-relaxed px-8"
           style={{
             color: "#1a1a3e",
-            maxWidth: 280,
-            minHeight: 56,
+            maxWidth: 300,
+            minHeight: 52,
             opacity: lastEchoText ? 1 : 0,
             transition: "opacity 0.4s ease",
           }}
@@ -460,8 +472,12 @@ function VoiceFullMode({
         {error && <p className="text-[12px] text-red-400 text-center">{error}</p>}
       </div>
 
-      {/* Bottom controls — centered row */}
-      <div className="flex-shrink-0 w-full flex items-center justify-center gap-6 pb-12 pt-2">
+      {/* Bottom controls — mic center aligned with screen center */}
+      {/* offset = chat(48) + gap(24) + half-mic(32) = 104px */}
+      <div
+        className="absolute flex items-center gap-6"
+        style={{ bottom: 48, left: "50%", transform: "translateX(-104px)" }}
+      >
         {/* Chat icon button */}
         <button
           onClick={() => { onDisconnect(); onSwitchToText(); }}

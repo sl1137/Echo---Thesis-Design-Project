@@ -160,6 +160,16 @@ body {
 }
 .animate-voice-bar { animation: voiceBar 1.1s ease-in-out infinite; }
 
+/* Orb: prominent float for voice-full mode */
+@keyframes orbLive {
+  0%   { transform: translateY(0px) scale(1); }
+  30%  { transform: translateY(-28px) scale(1.04); }
+  60%  { transform: translateY(-14px) scale(1.02); }
+  80%  { transform: translateY(-32px) scale(1.05); }
+  100% { transform: translateY(0px) scale(1); }
+}
+.animate-orb-live { animation: orbLive 5s ease-in-out infinite; }
+
 /* Staggered entrance delays */
 .delay-100 { animation-delay: 100ms; }
 .delay-200 { animation-delay: 200ms; }
