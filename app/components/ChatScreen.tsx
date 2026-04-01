@@ -215,8 +215,8 @@ function ValidationCardOverlay({
 function ChatBubble({ message }: { message: Message }) {
   const isEcho = message.role === "echo";
   return (
-    <div className={`flex items-end gap-2 ${isEcho ? "justify-start" : "justify-end"}`}>
-      {isEcho && <Orb size={42} />}
+    <div className={`flex items-end ${isEcho ? "justify-start" : "justify-end"}`}>
+      {isEcho && <div style={{ marginRight: 4 }}><Orb size={48} /></div>}
       <div
         style={{
           maxWidth: "72%",
@@ -232,7 +232,12 @@ function ChatBubble({ message }: { message: Message }) {
         {message.text}
       </div>
       {!isEcho && (
-        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(175,180,210,0.5)", flexShrink: 0 }} />
+        <img
+          src="/user-avatar.jpg"
+          alt="You"
+          draggable={false}
+          style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, marginLeft: 8 }}
+        />
       )}
     </div>
   );

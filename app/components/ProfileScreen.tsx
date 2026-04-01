@@ -245,7 +245,7 @@ function ConversationItem({ record }: { record: ConversationRecord }) {
 }
 
 // ─── ProfileScreen ────────────────────────────────────────────────────
-export default function ProfileScreen() {
+export default function ProfileScreen({ onOpenSettings }: { onOpenSettings?: () => void }) {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [timeRange, setTimeRange] = useState<TimeRange>("1w");
@@ -257,13 +257,13 @@ export default function ProfileScreen() {
     <div className="h-full overflow-y-auto" style={{ background: "var(--surface)" }}>
       {/* Header */}
       <div className="px-5 pt-6 pb-4 flex items-center gap-4">
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-xl flex-shrink-0"
-          style={{ background: "linear-gradient(135deg, var(--secondary_container), var(--primary_container))" }}
-        >
-          🌿
-        </div>
-        <div>
+        <img
+          src="/user-avatar.jpg"
+          alt="You"
+          className="w-12 h-12 rounded-full flex-shrink-0"
+          style={{ objectFit: "cover" }}
+        />
+        <div className="flex-1 min-w-0">
           <p
             className="text-[16px] font-bold"
             style={{ color: "var(--on_surface)" }}
@@ -277,6 +277,17 @@ export default function ProfileScreen() {
             Conversation & mood history
           </p>
         </div>
+        <button
+          onClick={() => onOpenSettings?.()}
+          className="w-9 h-9 flex items-center justify-center flex-shrink-0 transition-all active:scale-90"
+          style={{ background: "var(--surface_container_low)", borderRadius: 12 }}
+          aria-label="Settings"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--on_surface)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
       </div>
 
       {/* Calendar */}
