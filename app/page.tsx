@@ -38,7 +38,12 @@ export default function EchoApp() {
           </>
         )}
         {chatOpen && <ChatScreen onBack={() => setChatOpen(false)} />}
-        {settingsOpen && <SettingsScreen onBack={() => setSettingsOpen(false)} />}
+        {settingsOpen && (
+          <SettingsScreen
+            onBack={() => setSettingsOpen(false)}
+            onLogout={() => { setSettingsOpen(false); setScreen("enter"); }}
+          />
+        )}
       </div>
 
       {!chatOpen && !settingsOpen && (

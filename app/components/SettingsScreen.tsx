@@ -46,6 +46,7 @@ function Row({
   onToggle,
   toggled,
   showDivider = true,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -53,10 +54,11 @@ function Row({
   onToggle?: (v: boolean) => void;
   toggled?: boolean;
   showDivider?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <>
-      <div className="flex items-center gap-3 px-4 py-[14px]">
+      <div className="flex items-center gap-3 px-4 py-[14px]" onClick={onClick} style={{ cursor: onClick ? "pointer" : undefined }}>
         <span style={{ color: "#3a3a5a", flexShrink: 0 }}>{icon}</span>
         <span className="flex-1 text-[15px] font-medium" style={{ color: "#1a1a3e" }}>
           {label}
@@ -141,7 +143,7 @@ const IconLogout = () => (
 );
 
 // ─── SettingsScreen ───────────────────────────────────────────────────
-export default function SettingsScreen({ onBack }: { onBack: () => void }) {
+export default function SettingsScreen({ onBack, onLogout }: { onBack: () => void; onLogout?: () => void }) {
   const [darkMode, setDarkMode] = useState(false);
 
   return (
@@ -218,7 +220,7 @@ export default function SettingsScreen({ onBack }: { onBack: () => void }) {
         {/* Log out card */}
         <div className="mt-4">
         <Card>
-          <Row icon={<IconLogout />} label="Log out" showDivider={false} />
+          <Row icon={<IconLogout />} label="Log out" showDivider={false} onClick={onLogout} />
         </Card>
         </div>
       </div>
