@@ -170,6 +170,43 @@ body {
 }
 .animate-orb-live { animation: orbLive 5s ease-in-out infinite; }
 
+@keyframes rock {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+.animate-rock { animation: rock 2.4s ease-in-out infinite; }
+
+@keyframes envelopeFloat {
+  0%   { transform: translateY(0px) rotate(-2deg); }
+  25%  { transform: translateY(-5px) rotate(1.5deg); }
+  50%  { transform: translateY(-8px) rotate(-1deg); }
+  75%  { transform: translateY(-4px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(-2deg); }
+}
+.animate-envelope { animation: envelopeFloat 4s ease-in-out infinite; }
+
+@keyframes slideUp {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-slide-up { animation: slideUp 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+/* Card deck transitions */
+@keyframes cardExitLeft {
+  0%   { transform: translateX(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateX(-110%) rotate(-22deg) scale(0.78); opacity: 0; }
+}
+@keyframes cardExitRight {
+  0%   { transform: translateX(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateX(110%) rotate(22deg) scale(0.78); opacity: 0; }
+}
+/* Enter always springs up from the stack below */
+@keyframes cardEnterStack {
+  0%   { transform: translateY(32px) scale(0.86); opacity: 0; }
+  60%  { transform: translateY(-8px) scale(1.03); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
 @keyframes popIn {
   0%   { opacity: 0; transform: scale(0.88); }
   100% { opacity: 1; transform: scale(1); }

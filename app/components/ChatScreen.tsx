@@ -20,6 +20,7 @@ interface CardData {
 }
 
 const PAGE_BG = "radial-gradient(ellipse at 50% 12%, #dde5ff 0%, #e9ecfc 45%, #eeeaf8 100%)";
+const VOICE_BG_IMAGE = "url('/voice-bg.png')";
 
 // ─── Orb Image ────────────────────────────────────────────────────────
 function Orb({
@@ -683,7 +684,10 @@ export default function ChatScreen({ onBack }: { onBack: () => void }) {
   return (
     <div
       className="flex flex-col h-dvh max-w-md mx-auto overflow-hidden relative"
-      style={{ background: PAGE_BG }}
+      style={mode === "voice-full"
+        ? { backgroundImage: VOICE_BG_IMAGE, backgroundSize: "cover", backgroundPosition: "center" }
+        : { background: PAGE_BG }
+      }
     >
       {validationCard && (
         <ValidationCardOverlay card={validationCard} messages={messages} onClose={onBack} />
