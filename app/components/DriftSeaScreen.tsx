@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -334,6 +334,7 @@ function DriftBottleScreen({
       content: content.trim(),
       emotions: feelings,
       topics,
+      replies: [],
     };
     onDrifted(entry);
   }
@@ -500,23 +501,49 @@ function DriftBottleScreen({
 
 // ─── DriftedConfirmation ──────────────────────────────────────────────
 
-function DriftedConfirmation() {
+function DriftedConfirmation({ onDismiss }: { onDismiss: () => void }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 500);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div
+      onClick={() => ready && onDismiss()}
       className="absolute inset-0 flex flex-col items-center justify-center animate-fade-in"
-      style={{ background: PAGE_BG, zIndex: 60 }}
+      style={{ background: PAGE_BG, zIndex: 60, cursor: ready ? "pointer" : "default" }}
     >
-      <img
-        src="/bottle-drift.png"
-        alt="bottle drifting"
-        className="animate-bottle-appear animate-bottle-drift"
-        style={{ width: 180, height: 180, objectFit: "contain", marginBottom: 28 }}
-      />
-      <p className="text-[18px] font-semibold" style={{ color: "#3A5A7A" }}>
+      {/* Ripple rings — flex-centered behind the bottle */}
+      <div className="relative flex items-center justify-center" style={{ width: 280, height: 280, marginBottom: 32 }}>
+        <div className="animate-ripple-1" style={{
+          position: "absolute", width: 160, height: 160, borderRadius: "50%",
+          border: "1.5px solid rgba(100,160,210,0.4)", pointerEvents: "none",
+        }} />
+        <div className="animate-ripple-2" style={{
+          position: "absolute", width: 160, height: 160, borderRadius: "50%",
+          border: "1.5px solid rgba(100,160,210,0.35)", pointerEvents: "none",
+        }} />
+        <div className="animate-ripple-3" style={{
+          position: "absolute", width: 160, height: 160, borderRadius: "50%",
+          border: "1.5px solid rgba(100,160,210,0.3)", pointerEvents: "none",
+        }} />
+        <img
+          src="/bottle-drift.png"
+          alt="bottle drifting"
+          className="animate-bottle-appear animate-bottle-drift"
+          style={{ width: 260, height: 260, objectFit: "contain", position: "relative", zIndex: 1 }}
+        />
+      </div>
+
+      <p className="text-[20px] font-semibold" style={{ color: "#3A5A7A" }}>
         Your bottle is now drifting
       </p>
-      <p className="text-[13px] mt-2" style={{ color: "#8A9AAA" }}>
+      <p className="text-[14px] mt-2" style={{ color: "#8A9AAA" }}>
         Somewhere out there, someone will find it.
+      </p>
+      <p className="text-[12px] mt-8 animate-fade-in-slow delay-700" style={{ color: "#B0C4D8" }}>
+        Tap anywhere to continue
       </p>
     </div>
   );
@@ -612,9 +639,12 @@ function MyBottleCard({ bottle, onRecall, onOpen }: { bottle: BottleEntry; onRec
   const replyCount = bottle.replies.length;
 
   return (
-    <button
+    <div
       onClick={confirming ? undefined : onOpen}
-      className="w-full text-left transition-all active:scale-[0.99]"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (!confirming && e.key === "Enter") onOpen(); }}
+      className="w-full text-left transition-all active:scale-[0.99] cursor-pointer"
       style={{ background: "rgba(255,255,255,0.82)", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 8px rgba(80,100,160,0.06)" }}
     >
       {/* Date row + reply count + recall icon */}
@@ -631,7 +661,7 @@ function MyBottleCard({ bottle, onRecall, onOpen }: { bottle: BottleEntry; onRec
           )}
         </div>
         <button
-          onClick={() => setConfirming((c) => !c)}
+          onClick={(e) => { e.stopPropagation(); setConfirming((c) => !c); }}
           className="w-7 h-7 flex items-center justify-center rounded-full transition-all active:scale-90"
           style={{ background: confirming ? "#FDE8EE" : "transparent" }}
           title="Recall bottle"
@@ -658,14 +688,14 @@ function MyBottleCard({ bottle, onRecall, onOpen }: { bottle: BottleEntry; onRec
           <p className="text-[12px]" style={{ color: "#8A9AAA" }}>Recall this bottle?</p>
           <div className="flex gap-2">
             <button
-              onClick={() => setConfirming(false)}
+              onClick={(e) => { e.stopPropagation(); setConfirming(false); }}
               className="text-[12px] px-3 py-1.5 rounded-full transition-all active:scale-95"
               style={{ background: "#EEF2FA", color: "#6A7A9A" }}
             >
               Cancel
             </button>
             <button
-              onClick={onRecall}
+              onClick={(e) => { e.stopPropagation(); onRecall(); }}
               className="text-[12px] px-3 py-1.5 rounded-full transition-all active:scale-95"
               style={{ background: "#FDEAF2", color: "#C07090" }}
             >
@@ -674,7 +704,7 @@ function MyBottleCard({ bottle, onRecall, onOpen }: { bottle: BottleEntry; onRec
           </div>
         </div>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -805,6 +835,10 @@ function CalendarIcon() {
   );
 }
 
+// ─── Persistent state (survives tab switching / unmount) ──────────────
+let _myBottles: BottleEntry[] = SEED_MY_BOTTLES;
+let _replies: BottleReply[] = SEED_REPLIES;
+
 // ─── DriftSeaScreen ───────────────────────────────────────────────────
 
 export default function DriftSeaScreen() {
@@ -814,18 +848,34 @@ export default function DriftSeaScreen() {
   const [repliesOpen, setRepliesOpen] = useState(false);
   const [detailBottle, setDetailBottle] = useState<BottleEntry | null>(null);
   const [drifted, setDrifted] = useState(false);
-  const [myBottles, setMyBottles] = useState<BottleEntry[]>(SEED_MY_BOTTLES);
-  const [replies, setReplies] = useState<BottleReply[]>(SEED_REPLIES);
+  const [myBottles, _setMyBottles] = useState<BottleEntry[]>(() => _myBottles);
+  const [replies, _setReplies] = useState<BottleReply[]>(() => _replies);
   const unreadCount = replies.filter((r) => !r.read).length;
+
+  function setMyBottles(updater: BottleEntry[] | ((prev: BottleEntry[]) => BottleEntry[])) {
+    _setMyBottles((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      _myBottles = next;
+      return next;
+    });
+  }
+  function setReplies(updater: BottleReply[] | ((prev: BottleReply[]) => BottleReply[])) {
+    _setReplies((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      _replies = next;
+      return next;
+    });
+  }
 
   function handleDrifted(bottle: BottleEntry) {
     setDriftOpen(false);
     setMyBottles((prev) => [bottle, ...prev]);
     setDrifted(true);
-    setTimeout(() => {
-      setDrifted(false);
-      setActiveTab("my");
-    }, 3200);
+  }
+
+  function handleDriftDismiss() {
+    setDrifted(false);
+    setActiveTab("my");
   }
 
   return (
@@ -981,7 +1031,7 @@ export default function DriftSeaScreen() {
       {detailBottle && (
         <BottleDetailScreen bottle={detailBottle} onBack={() => setDetailBottle(null)} />
       )}
-      {drifted && <DriftedConfirmation />}
+      {drifted && <DriftedConfirmation onDismiss={handleDriftDismiss} />}
     </div>
   );
 }

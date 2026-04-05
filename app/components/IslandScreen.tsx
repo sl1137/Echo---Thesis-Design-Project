@@ -30,8 +30,8 @@ interface Category {
   name: string;
   tagline: string;
   cardBg: string;
-  lineColor: string;
-  linePath: string;
+  iconColor: string;
+  icon: (color: string) => React.ReactNode;
   accentColor: string;
   duration: string;
   practices: Practice[];
@@ -48,8 +48,13 @@ const CATEGORIES: Category[] = [
     name: "Stabilize",
     tagline: "Calm down · Come back · Stop the spiral",
     cardBg: "#DDEAFA",
-    lineColor: "rgba(58,90,154,0.22)",
-    linePath: "M 5,50 C 20,22 36,22 52,44 C 66,60 80,60 94,44 C 104,32 112,28 118,34",
+    iconColor: "rgba(58,90,154,0.32)",
+    icon: (color) => (<>
+      <circle cx="65" cy="10" r="5" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M 42,21 L 88,21" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M 28,27 C 28,64 102,64 102,27" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M 18,70 L 112,70" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    </>),
     accentColor: "#3A5A9A",
     duration: "< 2 min",
     practices: [
@@ -115,8 +120,14 @@ const CATEGORIES: Category[] = [
     name: "Clarify",
     tagline: "Understand what you feel · Name what's happening",
     cardBg: "#FAF4DC",
-    lineColor: "rgba(122,96,16,0.22)",
-    linePath: "M 5,55 C 18,25 34,62 48,42 C 55,30 64,18 58,34 C 52,50 36,46 48,28 C 62,8 80,30 90,54 C 97,66 108,50 116,46",
+    iconColor: "rgba(122,96,16,0.32)",
+    icon: (color) => (<>
+      <circle cx="65" cy="7" r="5" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M 65,14 C 38,20 38,55 65,62" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M 65,14 C 92,20 92,55 65,62" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="65" cy="38" r="5" fill="none" stroke={color} strokeWidth="1.8"/>
+      <circle cx="65" cy="70" r="5" fill="none" stroke={color} strokeWidth="1.8"/>
+    </>),
     accentColor: "#7A6010",
     duration: "2–4 min",
     practices: [
@@ -160,8 +171,12 @@ const CATEGORIES: Category[] = [
     name: "Reframe & Act",
     tagline: "Move forward · Take one small step",
     cardBg: "#FAE4EE",
-    lineColor: "rgba(160,64,96,0.22)",
-    linePath: "M 5,50 C 20,24 34,20 46,42 C 54,56 64,62 72,48 C 80,30 94,22 108,44 C 118,58 125,40 128,42",
+    iconColor: "rgba(160,64,96,0.32)",
+    icon: (color) => (<>
+      <path d="M 65,72 C 62,58 60,42 64,22" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M 60,52 C 42,44 36,28 50,18" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M 62,38 C 74,28 76,16 68,10" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    </>),
     accentColor: "#A04060",
     duration: "3–10 min",
     practices: [
@@ -972,27 +987,21 @@ export default function IslandScreen({ onStartChat, suggestedPractice }: IslandS
                     {cat.tagline}
                   </p>
 
-                  {/* Decorative line art — right side only */}
+                  {/* Decorative icon — right side, centered */}
                   <svg
-                    viewBox="0 0 130 75"
+                    viewBox="-22 -18 174 111"
                     preserveAspectRatio="xMidYMid meet"
                     style={{
                       position: "absolute",
-                      top: 0,
-                      right: 8,
-                      width: "38%",
-                      height: "100%",
+                      top: "50%",
+                      right: 10,
+                      width: "30%",
+                      height: "80%",
+                      transform: "translateY(-50%)",
                       pointerEvents: "none",
                     }}
                   >
-                    <path
-                      d={cat.linePath}
-                      fill="none"
-                      stroke={cat.lineColor}
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                    {cat.icon(cat.iconColor)}
                   </svg>
 
                   {/* Chevron */}

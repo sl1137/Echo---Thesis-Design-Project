@@ -282,3 +282,11 @@ body {
 }
 .animate-bottle-appear { animation: bottleAppear 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
 .animate-bottle-drift  { animation: bottleDrift 3s ease-in-out infinite; }
+
+@keyframes ripple {
+  0%   { transform: scale(0.5); opacity: 0.5; }
+  100% { transform: scale(3.4); opacity: 0; }
+}
+.animate-ripple-1 { animation: ripple 2.6s ease-out infinite; }
+.animate-ripple-2 { animation: ripple 2.6s ease-out 0.87s infinite; }
+.animate-ripple-3 { animation: ripple 2.6s ease-out 1.73s infinite; }
