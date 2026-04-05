@@ -30,6 +30,8 @@ interface Category {
   name: string;
   tagline: string;
   cardBg: string;
+  lineColor: string;
+  linePath: string;
   accentColor: string;
   duration: string;
   practices: Practice[];
@@ -46,6 +48,8 @@ const CATEGORIES: Category[] = [
     name: "Stabilize",
     tagline: "Calm down · Come back · Stop the spiral",
     cardBg: "#DDEAFA",
+    lineColor: "rgba(58,90,154,0.22)",
+    linePath: "M 5,50 C 20,22 36,22 52,44 C 66,60 80,60 94,44 C 104,32 112,28 118,34",
     accentColor: "#3A5A9A",
     duration: "< 2 min",
     practices: [
@@ -111,6 +115,8 @@ const CATEGORIES: Category[] = [
     name: "Clarify",
     tagline: "Understand what you feel · Name what's happening",
     cardBg: "#FAF4DC",
+    lineColor: "rgba(122,96,16,0.22)",
+    linePath: "M 5,55 C 18,25 34,62 48,42 C 55,30 64,18 58,34 C 52,50 36,46 48,28 C 62,8 80,30 90,54 C 97,66 108,50 116,46",
     accentColor: "#7A6010",
     duration: "2–4 min",
     practices: [
@@ -154,6 +160,8 @@ const CATEGORIES: Category[] = [
     name: "Reframe & Act",
     tagline: "Move forward · Take one small step",
     cardBg: "#FAE4EE",
+    lineColor: "rgba(160,64,96,0.22)",
+    linePath: "M 5,50 C 20,24 34,20 46,42 C 54,56 64,62 72,48 C 80,30 94,22 108,44 C 118,58 125,40 128,42",
     accentColor: "#A04060",
     duration: "3–10 min",
     practices: [
@@ -211,6 +219,7 @@ function CardContent({ practice, category, onStart }: { practice: Practice; cate
       <button
         onClick={onStart}
         onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
         className="w-full py-3.5 rounded-2xl text-[15px] font-semibold text-white mt-5 transition-all active:scale-[0.98]"
         style={{ background: "rgba(40,40,60,0.75)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
       >
@@ -483,6 +492,7 @@ function MicroPracticeOverlay({
                 zIndex: 5,
                 boxShadow: "0 12px 40px rgba(0,0,0,0.14)",
                 animation: `${exitingCard.dir === "left" ? "cardExitLeft" : "cardExitRight"} 0.2s cubic-bezier(0.4,0,1,1) forwards`,
+                pointerEvents: "none",
               }}
               onAnimationEnd={() => setExitingCard(null)}
             >
@@ -931,7 +941,7 @@ export default function IslandScreen({ onStartChat, suggestedPractice }: IslandS
                 <button
                   key={cat.id}
                   onClick={() => setOpenCategory(cat)}
-                  className="flex-1 w-full text-left flex flex-col items-start px-4 py-3.5 relative transition-all active:scale-[0.98]"
+                  className="flex-1 w-full text-left flex flex-col items-start px-4 py-3.5 relative transition-all active:scale-[0.98] overflow-hidden"
                   style={{
                     background: "rgba(255,255,255,0.72)",
                     borderRadius: 18,
@@ -961,6 +971,29 @@ export default function IslandScreen({ onStartChat, suggestedPractice }: IslandS
                   <p style={{ fontSize: 12, color: "#888899", paddingRight: 28 }}>
                     {cat.tagline}
                   </p>
+
+                  {/* Decorative line art — right side only */}
+                  <svg
+                    viewBox="0 0 130 75"
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      right: 8,
+                      width: "38%",
+                      height: "100%",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <path
+                      d={cat.linePath}
+                      fill="none"
+                      stroke={cat.lineColor}
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
 
                   {/* Chevron */}
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={cat.accentColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
