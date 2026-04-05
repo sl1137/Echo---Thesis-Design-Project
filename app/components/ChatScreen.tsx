@@ -2,22 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRealtimeVoice, VoiceStatus } from "../hooks/useRealtimeVoice";
-
-// ─── Types ────────────────────────────────────────────────────────────
-interface Message {
-  id: string;
-  role: "user" | "echo";
-  text: string;
-}
+import type { CardData, ChatMessage as Message, SessionRecord } from "../page";
 
 type ChatMode = "text" | "voice-input" | "voice-full";
-
-interface CardData {
-  summary: string;
-  emotion_tags: string[];
-  insight: string;
-  validation_sentence: string;
-}
 
 const PAGE_BG = "radial-gradient(ellipse at 50% 12%, #dde5ff 0%, #e9ecfc 45%, #eeeaf8 100%)";
 const VOICE_BG_IMAGE = "url('/voice-bg.png')";
@@ -127,87 +114,128 @@ function ChatHeader({
 }
 
 // ─── Validation Card Overlay ──────────────────────────────────────────
+function SessionTabs({
+  tab,
+  onChange,
+}: {
+  tab: "analysis" | "transcript";
+  onChange: (t: "analysis" | "transcript") => void;
+}) {
+  return (
+    <div className="flex p-1 rounded-full" style={{ background: "var(--surface_container)" }}>
+      {(["analysis", "transcript"] as const).map((t) => (
+        <button
+          key={t}
+          onClick={() => onChange(t)}
+          className="flex-1 py-1.5 text-[13px] font-semibold rounded-full transition-all"
+          style={{
+            background: tab === t ? "var(--surface_container_lowest)" : "transparent",
+            color: tab === t ? "var(--on_surface)" : "var(--on_surface)",
+            opacity: tab === t ? 1 : 0.45,
+            boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+          }}
+        >
+          {t === "analysis" ? "Analysis" : "Transcript"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ValidationCardOverlay({
   card,
   messages,
   onClose,
+  onContinue,
 }: {
   card: CardData;
   messages: Message[];
   onClose: () => void;
+  onContinue: () => void;
 }) {
-  const [showTranscript, setShowTranscript] = useState(false);
-  const timeLabel = new Date().toLocaleDateString("en-US", {
-    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-  });
+  const [tab, setTab] = useState<"analysis" | "transcript">("analysis");
+
+  // Colors pulled from PAGE_BG palette
+  const BG = "radial-gradient(ellipse at 50% 12%, #dde5ff 0%, #e9ecfc 45%, #eeeaf8 100%)";
+  const CARD_BG = "rgba(255,255,255,0.72)";
+  const CARD_QUOTE = "linear-gradient(135deg, rgba(200,210,255,0.7) 0%, rgba(220,205,255,0.7) 100%)";
+  const TAG_BG = "rgba(255,255,255,0.75)";
+  const TEXT = "#1a1a3e";
+  const MUTED = "rgba(26,26,62,0.45)";
+  const TAB_PILL = "rgba(26,26,62,0.10)";
+  const TAB_ACTIVE = "rgba(255,255,255,0.80)";
+  const BTN_BG = "rgba(26,26,62,0.12)";
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col animate-fade-in" style={{ background: "var(--surface)" }}>
-      <div className="flex items-center justify-between px-5 pt-6 pb-4 flex-shrink-0">
-        <div>
-          <h2 className="text-[20px] font-bold" style={{ fontFamily: "var(--font-serif)", color: "var(--on_surface)" }}>Session Card</h2>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--on_surface)", opacity: 0.45 }}>{timeLabel}</p>
-        </div>
-        <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90" style={{ background: "var(--surface_container)" }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <div className="absolute inset-0 z-50 flex flex-col animate-fade-in" style={{ background: BG }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 pt-6 pb-3 flex-shrink-0">
+        <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-90" style={{ background: "rgba(255,255,255,0.55)" }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2" strokeLinecap="round">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 pb-8">
-        <div className="mb-5 p-5" style={{ background: "linear-gradient(135deg, var(--secondary_container) 0%, var(--primary_container) 100%)", borderRadius: "var(--radius-xl)" }}>
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-3 opacity-60" style={{ color: "var(--on_surface)" }}>You are seen</p>
-          <p className="text-[17px] leading-relaxed font-medium" style={{ fontFamily: "var(--font-serif)", color: "var(--on_surface)" }}>"{card.validation_sentence}"</p>
-        </div>
-
-        {card.emotion_tags.length > 0 && (
-          <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2.5 opacity-45" style={{ color: "var(--on_surface)" }}>Emotions</p>
-            <div className="flex flex-wrap gap-2">
-              {card.emotion_tags.map((tag) => (
-                <span key={tag} className="px-3 py-1.5 text-[13px] font-semibold" style={{ background: "var(--surface_container)", color: "var(--on_surface)", borderRadius: "var(--radius-pill)" }}>{tag}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mb-4 p-4" style={{ background: "var(--surface_container_low)", borderRadius: "var(--radius-lg)" }}>
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-2 opacity-45" style={{ color: "var(--on_surface)" }}>Summary</p>
-          <p className="text-[14px] leading-relaxed" style={{ color: "var(--on_surface)" }}>{card.summary}</p>
-        </div>
-
-        <div className="mb-5 p-4" style={{ background: "var(--surface_container_low)", borderRadius: "var(--radius-lg)" }}>
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-2 opacity-45" style={{ color: "var(--on_surface)" }}>Insight</p>
-          <p className="text-[14px] leading-relaxed" style={{ color: "var(--on_surface)" }}>{card.insight}</p>
-        </div>
-
-        <button onClick={() => setShowTranscript((v) => !v)} className="w-full flex items-center justify-between py-3 px-4 mb-2 transition-all active:scale-[0.99]" style={{ background: "var(--surface_container_low)", borderRadius: "var(--radius-lg)" }}>
-          <span className="text-[13px] font-semibold" style={{ color: "var(--on_surface)", opacity: 0.6 }}>Full Transcript</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: "var(--on_surface)", opacity: 0.4, transform: showTranscript ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-
-        {showTranscript && (
-          <div className="p-4 space-y-3 animate-fade-in" style={{ background: "var(--surface_container_low)", borderRadius: "var(--radius-lg)" }}>
-            {messages.length === 0 ? (
-              <p className="text-[13px] text-center opacity-40" style={{ color: "var(--on_surface)" }}>No transcript recorded</p>
-            ) : messages.map((m) => (
-              <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className="max-w-[85%] px-3 py-2 text-[13px] leading-relaxed" style={{ borderRadius: "var(--radius-md)", background: m.role === "user" ? "var(--secondary_container)" : "var(--surface_container_lowest)", color: "var(--on_surface)" }}>
-                  {m.text}
-                </div>
-              </div>
+        <div className="flex-1">
+          <div className="flex p-1 rounded-full" style={{ background: TAB_PILL }}>
+            {(["analysis", "transcript"] as const).map((t) => (
+              <button key={t} onClick={() => setTab(t)}
+                className="flex-1 py-1.5 text-[13px] font-semibold rounded-full transition-all"
+                style={{ background: tab === t ? TAB_ACTIVE : "transparent", color: TEXT, opacity: tab === t ? 1 : 0.45, boxShadow: tab === t ? "0 1px 4px rgba(26,26,62,0.10)" : "none" }}>
+                {t === "analysis" ? "Analysis" : "Transcript"}
+              </button>
             ))}
           </div>
-        )}
-
-        <button onClick={onClose} className="w-full mt-5 py-3.5 text-[14px] font-semibold transition-all active:scale-[0.98]"
-          style={{ background: "rgba(255,245,243,0.85)", color: "#2D1B4E", borderRadius: "var(--radius-lg)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1.5px solid #2D1B4E" }}>
-          Return to Island
-        </button>
+        </div>
       </div>
+
+      {/* Tab content */}
+      {tab === "analysis" && (
+        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
+          <div className="p-4" style={{ background: CARD_QUOTE, borderRadius: 18, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: MUTED }}>You are seen</p>
+            <p className="text-[15px] leading-relaxed font-medium" style={{ fontFamily: "var(--font-serif)", color: TEXT }}>"{card.validation_sentence}"</p>
+          </div>
+          {card.emotion_tags.length > 0 && (
+            <div className="p-4" style={{ background: CARD_BG, borderRadius: 18, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: MUTED }}>Feelings</p>
+              <div className="flex flex-wrap gap-2">
+                {card.emotion_tags.map((tag) => (
+                  <span key={tag} className="px-3 py-1.5 text-[13px] font-semibold" style={{ background: TAG_BG, color: TEXT, borderRadius: 999 }}>{tag}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="p-4" style={{ background: CARD_BG, borderRadius: 18, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: MUTED }}>Summary</p>
+            <p className="text-[14px] leading-relaxed" style={{ color: TEXT }}>{card.summary}</p>
+          </div>
+          <div className="p-4" style={{ background: CARD_BG, borderRadius: 18, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: MUTED }}>Insight</p>
+            <p className="text-[14px] leading-relaxed" style={{ color: TEXT }}>{card.insight}</p>
+          </div>
+          <button onClick={onContinue} className="w-full py-3.5 text-[14px] font-semibold transition-all active:scale-[0.98]"
+            style={{ background: BTN_BG, color: TEXT, borderRadius: 18, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+            Continue Chat
+          </button>
+        </div>
+      )}
+
+      {tab === "transcript" && (
+        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3 pt-1">
+          {messages.length === 0 ? (
+            <p className="text-[13px] text-center mt-8" style={{ color: MUTED }}>No transcript recorded</p>
+          ) : messages.map((m) => (
+            <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className="px-4 py-2.5 text-[14px] leading-relaxed" style={{
+                maxWidth: "80%",
+                borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                background: m.role === "user" ? "rgba(246,221,233,0.80)" : "rgba(255,255,255,0.72)",
+                color: TEXT,
+              }}>{m.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -222,7 +250,7 @@ function ChatBubble({ message }: { message: Message }) {
         style={{
           maxWidth: "72%",
           padding: "10px 16px",
-          background: "rgba(255,255,255,0.88)",
+          background: "rgba(255,255,255,0.72)",
           color: "#1a1a3e",
           borderRadius: isEcho ? "18px 18px 18px 4px" : "18px 18px 4px 18px",
           fontSize: 15,
@@ -325,21 +353,20 @@ function TextInputBar({
 // ─── Waveform Bars ────────────────────────────────────────────────────
 // Matches image 6: 5 pill-shaped bars, bell-curve heights, dark color, animated
 function WaveformBars({ playing }: { playing: boolean }) {
-  // Heights in px: outer short, mid tall, center tallest
   const bars = [
-    { h: 28, delay: "0.00s" },
-    { h: 52, delay: "0.15s" },
-    { h: 72, delay: "0.30s" },
-    { h: 52, delay: "0.45s" },
-    { h: 28, delay: "0.60s" },
+    { h: 40,  delay: "0.00s" },
+    { h: 72,  delay: "0.15s" },
+    { h: 100, delay: "0.30s" },
+    { h: 72,  delay: "0.45s" },
+    { h: 40,  delay: "0.60s" },
   ];
   return (
-    <div className="flex items-center gap-[6px]">
+    <div className="flex items-center gap-[10px]">
       {bars.map((bar, i) => (
         <div
           key={i}
           style={{
-            width: 7,
+            width: 16,
             height: bar.h,
             borderRadius: 999,
             background: "#1a1a3e",
@@ -362,15 +389,22 @@ function VoiceInputMode({
   onStop: () => void;
   messages: Message[];
 }) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Chat messages scrollable at top */}
-      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-2 space-y-3">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-3 space-y-3">
         {messages.map((msg) => <ChatBubble key={msg.id} message={msg} />)}
+        <div ref={bottomRef} />
       </div>
 
-      {/* Waveform — centered in remaining space */}
-      <div className="flex-shrink-0 flex flex-col items-center justify-center gap-5 py-10">
+      {/* Waveform — sits between messages and bottom bar, no visible divider */}
+      <div className="flex-shrink-0 flex items-center justify-center" style={{ height: 140 }}>
         <WaveformBars playing={isRecording} />
       </div>
 
@@ -387,8 +421,8 @@ function VoiceInputMode({
             height: 52,
           }}
         >
-          <span className="flex-1 text-[15px] select-none" style={{ color: "rgba(26,26,62,0.35)" }}>
-            Generating transcript...
+          <span className="flex-1 text-[15px] select-none" style={{ color: "rgba(26,26,62,0.45)" }}>
+            {isRecording ? "Recording..." : "Generating transcript..."}
           </span>
           {/* Stop button */}
           <button
@@ -529,12 +563,21 @@ function VoiceFullMode({
 }
 
 // ─── ChatScreen ───────────────────────────────────────────────────────
-export default function ChatScreen({ onBack }: { onBack: () => void }) {
+export default function ChatScreen({
+  onBack,
+  onSuggestPractice,
+  onSaveSession,
+}: {
+  onBack: () => void;
+  onSuggestPractice?: (p: { practiceId: string; categoryId: string }) => void;
+  onSaveSession?: (s: SessionRecord) => void;
+}) {
   const [mode, setMode] = useState<ChatMode>("text");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
+  const suggestedRef = useRef(false);
   const [validationCard, setValidationCard] = useState<CardData | null>(null);
   const [lastEchoText, setLastEchoText] = useState("");
 
@@ -596,6 +639,24 @@ export default function ChatScreen({ onBack }: { onBack: () => void }) {
     return data.bubbles?.filter((b: string) => b?.trim()) || [data.response || "I'm here."];
   }
 
+  function maybeSuggestPractice(echoText: string) {
+    if (suggestedRef.current || !onSuggestPractice) return;
+    const t = echoText.toLowerCase();
+    let match = { practiceId: "slow_exhale", categoryId: "stabilize" };
+    if (t.includes("breath") || t.includes("anxious") || t.includes("tense"))
+      match = { practiceId: "slow_exhale", categoryId: "stabilize" };
+    else if (t.includes("spiral") || t.includes("pause") || t.includes("overwhelm"))
+      match = { practiceId: "pause_with_me", categoryId: "stabilize" };
+    else if (t.includes("feel") || t.includes("emotion") || t.includes("name"))
+      match = { practiceId: "name_whats_here", categoryId: "clarify" };
+    else if (t.includes("step") || t.includes("stuck") || t.includes("task"))
+      match = { practiceId: "one_tiny_next_step", categoryId: "reframe" };
+    else if (t.includes("thought") || t.includes("reaction") || t.includes("automatic"))
+      match = { practiceId: "catch_the_thought", categoryId: "clarify" };
+    suggestedRef.current = true;
+    onSuggestPractice(match);
+  }
+
   function handleSend() {
     if (!input.trim() || isLoading) return;
     const userMsg: Message = { id: Date.now().toString(), role: "user", text: input.trim() };
@@ -606,6 +667,7 @@ export default function ChatScreen({ onBack }: { onBack: () => void }) {
       .then((bubbles) => {
         const ts = Date.now();
         bubbles.forEach((text, i) => setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text }]));
+        maybeSuggestPractice(bubbles[bubbles.length - 1] ?? "");
       })
       .catch(() => setMessages((prev) => [...prev, { id: `${Date.now()}`, role: "echo", text: "I'm here." }]))
       .finally(() => setIsLoading(false));
@@ -623,14 +685,18 @@ export default function ChatScreen({ onBack }: { onBack: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversation: messages.map((m) => ({ role: m.role, content: m.text })) }),
       });
-      setValidationCard(await res.json());
+      const card = await res.json();
+      setValidationCard(card);
+      onSaveSession?.({ id: Date.now().toString(), timestamp: new Date(), card, messages });
     } catch {
-      setValidationCard({
+      const card: CardData = {
         summary: "You took a moment to check in with yourself today.",
         emotion_tags: ["present"],
         insight: "Showing up, even briefly, is an act of care toward yourself.",
         validation_sentence: "Whatever you're carrying right now — it makes sense that it feels heavy.",
-      });
+      };
+      setValidationCard(card);
+      onSaveSession?.({ id: Date.now().toString(), timestamp: new Date(), card, messages });
     } finally {
       setIsEnding(false);
     }
@@ -690,7 +756,12 @@ export default function ChatScreen({ onBack }: { onBack: () => void }) {
       }
     >
       {validationCard && (
-        <ValidationCardOverlay card={validationCard} messages={messages} onClose={onBack} />
+        <ValidationCardOverlay
+          card={validationCard}
+          messages={messages}
+          onClose={onBack}
+          onContinue={() => setValidationCard(null)}
+        />
       )}
 
       <ChatHeader onBack={onBack} onEndChat={handleEndChat} isEnding={isEnding} />

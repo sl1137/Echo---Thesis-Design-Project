@@ -12,18 +12,20 @@ The Validation Card should:
 - Be warm, non-clinical, and genuine
 - Reflect the actual content of the conversation
 - Feel like something a caring friend might notice and say
-- Use the same language as the conversation (Chinese if the conversation is in Chinese, English if in English)
+- Always respond in English regardless of the conversation language
 
 Return this exact JSON structure:
 {
+  "title": "Short English phrase (4-7 words) summarizing the main topic of the conversation — always in English regardless of conversation language, e.g. 'Feeling overwhelmed before a deadline' or 'Missing home and feeling lonely'",
   "summary": "2-3 sentence summary of what was discussed and the emotional arc of the conversation",
-  "emotion_tags": ["tag1", "tag2"],
+  "emotion_tags": ["anxious", "overwhelmed"],
   "insight": "1-2 sentences of a gentle, non-clinical observation about the emotions or patterns in this conversation",
   "validation_sentence": "One warm sentence that validates the person's experience — something that makes them feel truly seen and understood"
 }
 
 Rules:
-- emotion_tags: 2-4 short labels (e.g. 焦虑, 孤独, 疲惫, or anxious, lonely, overwhelmed)
+- title: ALWAYS in English, max 7 words, captures the specific topic discussed (not just emotions)
+- emotion_tags: 2-4 short labels in English ONLY (e.g. anxious, lonely, overwhelmed, pressured) — never use Chinese
 - insight: observational, not prescriptive — describe what you noticed, don't give advice
 - validation_sentence: deeply personal, not generic — reference something specific from the conversation`;
 
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
     const parsed = JSON.parse(data.choices[0]?.message?.content || "{}");
 
     return NextResponse.json({
+      title: parsed.title || "",
       summary: parsed.summary || "",
       emotion_tags: parsed.emotion_tags || [],
       insight: parsed.insight || "",

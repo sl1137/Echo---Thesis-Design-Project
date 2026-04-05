@@ -8,6 +8,12 @@ import { useState, useRef, useEffect } from "react";
 
 // ─── Data ─────────────────────────────────────────────────────────────
 
+interface PracticeStep {
+  instruction: string;
+  duration?: number; // seconds — shows timer bar when present
+  hint?: string;
+}
+
 interface Practice {
   id: string;
   name: string;
@@ -15,14 +21,17 @@ interface Practice {
   duration: string;
   description: string;
   blobColor: string; // pastel from style guide
+  steps: PracticeStep[];
+  completion: string; // message shown on done screen
 }
 
 interface Category {
   id: string;
   name: string;
   tagline: string;
-  cardBg: string;   // island page category card bg
+  cardBg: string;
   accentColor: string;
+  duration: string;
   practices: Practice[];
 }
 
@@ -36,43 +45,146 @@ const CATEGORIES: Category[] = [
     id: "stabilize",
     name: "Stabilize",
     tagline: "Calm down · Come back · Stop the spiral",
-    cardBg: diffuse("#DBE3FF", "35% 30%"),
-    accentColor: "#4A5AAA",
+    cardBg: "#DDEAFA",
+    accentColor: "#3A5A9A",
+    duration: "< 2 min",
     practices: [
-      { id: "pause_with_me", name: "Pause with Me", bestFor: ["triggered", "spiraling", "urge to react"], duration: "< 1 min", description: "Interrupt emotional autopilot before you do anything else.", blobColor: "#DBE3FF" },
-      { id: "come_back_to_room", name: "Come Back to the Room", bestFor: ["disconnected", "floaty", "checked out"], duration: "2–3 min", description: "Reconnect with the present through your five senses.", blobColor: "#DBF5D8" },
-      { id: "slow_exhale", name: "Slow Exhale", bestFor: ["anxious", "heart racing", "body tense"], duration: "1–2 min", description: "Lower physical arousal with a short breathing reset.", blobColor: "#E5D8F5" },
-      { id: "this_feeling_makes_sense", name: "This Feeling Makes Sense", bestFor: ["shame", "overreacting", "self-judgment"], duration: "2 min", description: "Stop fighting yourself for feeling what you feel.", blobColor: "#DBE3FF" },
-      { id: "ride_the_wave", name: "Ride the Wave", bestFor: ["impulsive urge", "want to react", "intense feeling"], duration: "2 min", description: "Survive an intense urge without acting on it right away.", blobColor: "#DBF5D8" },
+      {
+        id: "pause_with_me", name: "Pause with Me", bestFor: ["triggered", "spiraling", "urge to react"], duration: "< 1 min",
+        description: "Interrupt emotional autopilot before you do anything else.", blobColor: "#DBE3FF",
+        completion: "You interrupted the spiral. That's enough.",
+        steps: [
+          { instruction: "Stop. Don't do anything yet.", hint: "Just let yourself pause here for a moment." },
+          { instruction: "Take one breath in through your nose.", duration: 4 },
+          { instruction: "Breathe out slowly through your mouth.", duration: 6 },
+          { instruction: "Notice: your feet on the ground. Your hands. The temperature of the air.", hint: "You don't have to fix anything right now." },
+        ],
+      },
+      {
+        id: "come_back_to_room", name: "Come Back to the Room", bestFor: ["disconnected", "floaty", "checked out"], duration: "2–3 min",
+        description: "Reconnect with the present through your five senses.", blobColor: "#DBF5D8",
+        completion: "You came back. That was real.",
+        steps: [
+          { instruction: "Look around and name 3 things you can see right now." },
+          { instruction: "Name 2 things you can physically feel — floor, fabric, air.", hint: "Touch something solid if you can." },
+          { instruction: "Name 1 thing you can hear.", hint: "Even the faintest sound counts." },
+          { instruction: "Take a slow breath and say quietly: \"I'm here. I'm okay.\"", duration: 8 },
+        ],
+      },
+      {
+        id: "slow_exhale", name: "Slow Exhale", bestFor: ["anxious", "heart racing", "body tense"], duration: "1–2 min",
+        description: "Lower physical arousal with a short breathing reset.", blobColor: "#E5D8F5",
+        completion: "Your nervous system just got a little quieter.",
+        steps: [
+          { instruction: "Breathe in gently through your nose.", duration: 4 },
+          { instruction: "Hold for just a moment.", duration: 2 },
+          { instruction: "Breathe out slowly through your mouth — longer than you breathed in.", duration: 8 },
+          { instruction: "Repeat two more times at your own pace.", hint: "No rush." },
+        ],
+      },
+      {
+        id: "this_feeling_makes_sense", name: "This Feeling Makes Sense", bestFor: ["shame", "overreacting", "self-judgment"], duration: "2 min",
+        description: "Stop fighting yourself for feeling what you feel.", blobColor: "#DBE3FF",
+        completion: "You met your feeling instead of fighting it.",
+        steps: [
+          { instruction: "What are you feeling right now? Name it, even loosely.", hint: "\"Anxious\", \"numb\", \"wound up\" — anything is fine." },
+          { instruction: "Say to yourself: \"It makes sense I feel this way.\"", hint: "You don't need a perfect reason. Just let it be valid." },
+          { instruction: "Think of one real thing that contributed to this feeling.", hint: "Could be tiny — a comment, a moment, a memory." },
+          { instruction: "Say gently: \"I'm not overreacting. I'm responding.\"", duration: 6 },
+        ],
+      },
+      {
+        id: "ride_the_wave", name: "Ride the Wave", bestFor: ["impulsive urge", "want to react", "intense feeling"], duration: "2 min",
+        description: "Survive an intense urge without acting on it right away.", blobColor: "#DBF5D8",
+        completion: "You surfed it. The urge passed without you acting on it.",
+        steps: [
+          { instruction: "Notice the urge or intense feeling. Where is it in your body?", hint: "Chest, stomach, throat — just observe." },
+          { instruction: "Give it a shape or color in your mind. Don't try to change it.", duration: 10 },
+          { instruction: "Remind yourself: feelings peak and pass. This one will too.", hint: "Most urges peak within 90 seconds." },
+          { instruction: "Breathe slowly and just watch it.", duration: 12 },
+        ],
+      },
     ],
   },
   {
     id: "clarify",
     name: "Clarify",
     tagline: "Understand what you feel · Name what's happening",
-    cardBg: diffuse("#FBF7D5", "40% 35%"),
-    accentColor: "#7A6A20",
+    cardBg: "#FAF4DC",
+    accentColor: "#7A6010",
+    duration: "2–4 min",
     practices: [
-      { id: "name_whats_here", name: "Name What's Here", bestFor: ["feel bad but can't say why", "blurry feelings", "mixed emotions"], duration: "2–3 min", description: "Move from 'I feel weird' to knowing exactly what's happening.", blobColor: "#FBF7D5" },
-      { id: "what_happened_vs_meant", name: "What Happened vs What It Meant", bestFor: ["reading into it", "spiraling over ambiguity", "social situations"], duration: "3–4 min", description: "Separate the event from the story your mind attached to it.", blobColor: "#E5D8F5" },
-      { id: "catch_the_thought", name: "Catch the Thought", bestFor: ["emotional drop happened fast", "harsh self-talk", "automatic reaction"], duration: "2–3 min", description: "Find the exact thought that intensified how you're feeling.", blobColor: "#FBF7D5" },
+      {
+        id: "name_whats_here", name: "Name What's Here", bestFor: ["feel bad but can't say why", "blurry feelings", "mixed emotions"], duration: "2–3 min",
+        description: "Move from 'I feel weird' to knowing exactly what's happening.", blobColor: "#FBF7D5",
+        completion: "You know what's here. That's the first step.",
+        steps: [
+          { instruction: "Slow down. Place a hand on your chest or lap.", duration: 5 },
+          { instruction: "Scan: what sensations are in your body right now?", hint: "Tightness? Weight? Energy? Just notice." },
+          { instruction: "What emotion word fits best?", hint: "If one word isn't enough, two is fine." },
+          { instruction: "Say it out loud: \"Right now I'm feeling ___.\"", hint: "Naming shifts the feeling slightly. That's normal." },
+        ],
+      },
+      {
+        id: "what_happened_vs_meant", name: "What Happened vs What It Meant", bestFor: ["reading into it", "spiraling over ambiguity", "social situations"], duration: "3–4 min",
+        description: "Separate the event from the story your mind attached to it.", blobColor: "#E5D8F5",
+        completion: "You created some distance between the event and the meaning.",
+        steps: [
+          { instruction: "Describe what literally happened — just the facts.", hint: "\"They didn't reply.\" Not \"They're ignoring me.\"" },
+          { instruction: "Now notice the story your mind added to it. What did you tell yourself it meant?", hint: "\"They don't care.\" \"I said something wrong.\"" },
+          { instruction: "Is there another possible explanation? Even one.", hint: "You don't have to believe it — just acknowledge it exists." },
+          { instruction: "Take a breath and hold both possibilities for a moment.", duration: 8 },
+        ],
+      },
+      {
+        id: "catch_the_thought", name: "Catch the Thought", bestFor: ["emotional drop happened fast", "harsh self-talk", "automatic reaction"], duration: "2–3 min",
+        description: "Find the exact thought that intensified how you're feeling.", blobColor: "#FBF7D5",
+        completion: "You found the thought instead of just living inside it.",
+        steps: [
+          { instruction: "What was the moment things felt worse?", hint: "Something shifted — try to find it." },
+          { instruction: "What were you thinking right before or during that moment?", hint: "Often a quick, automatic judgment." },
+          { instruction: "Say it out loud: \"The thought was: ___.\"" },
+          { instruction: "Ask gently: is this a fact, or is this a fear?", duration: 8 },
+        ],
+      },
     ],
   },
   {
     id: "reframe",
     name: "Reframe & Act",
     tagline: "Move forward · Take one small step",
-    cardBg: diffuse("#FFDBDB", "38% 32%"),
-    accentColor: "#9A4A4A",
+    cardBg: "#FAE4EE",
+    accentColor: "#A04060",
+    duration: "3–10 min",
     practices: [
-      { id: "one_tiny_next_step", name: "One Tiny Next Step", bestFor: ["frozen", "task avoidance", "too overwhelming to begin"], duration: "3–4 min", description: "Break an overwhelming task into the smallest possible move.", blobColor: "#FFDBDB" },
-      { id: "ten_minute_restart", name: "10-Minute Restart", bestFor: ["flat", "low energy", "shut down", "stuck"], duration: "10 min", description: "Restart movement when you feel heavy or inert.", blobColor: "#FFECD8" },
+      {
+        id: "one_tiny_next_step", name: "One Tiny Next Step", bestFor: ["frozen", "task avoidance", "too overwhelming to begin"], duration: "3–4 min",
+        description: "Break an overwhelming task into the smallest possible move.", blobColor: "#FFDBDB",
+        completion: "One tiny step is still movement. Go do just that.",
+        steps: [
+          { instruction: "What's the thing that feels too big or heavy to start?", hint: "Name it, even vaguely." },
+          { instruction: "Break it down: what's the smallest possible piece of that?", hint: "Smaller than you think. Truly tiny." },
+          { instruction: "Make it even smaller.", hint: "\"Open the document\" is better than \"write the paper.\"" },
+          { instruction: "Say: \"I only have to do ___. That's it.\"", hint: "Not the whole thing — just that." },
+        ],
+      },
+      {
+        id: "ten_minute_restart", name: "10-Minute Restart", bestFor: ["flat", "low energy", "shut down", "stuck"], duration: "10 min",
+        description: "Restart movement when you feel heavy or inert.", blobColor: "#FFECD8",
+        completion: "You restarted. That's the hardest part.",
+        steps: [
+          { instruction: "You don't have to feel ready. Just pick one small physical action.", hint: "Stand up. Get water. Open a window." },
+          { instruction: "You're only committing to 10 minutes. Not the whole task. Just 10.", hint: "Start a timer if that helps." },
+          { instruction: "Start with the lowest-friction part.", hint: "Whatever feels least like work right now." },
+          { instruction: "When the time is up, you can stop. You chose to show up — that counts.", hint: "If you want to keep going, great. If not, you still did it." },
+        ],
+      },
     ],
   },
 ];
 
 // ─── Card Content (shared between current + exiting card) ─────────────
-function CardContent({ practice, category }: { practice: Practice; category: Category }) {
+function CardContent({ practice, category, onStart }: { practice: Practice; category: Category; onStart: () => void }) {
   return (
     <>
       <div className="flex items-center justify-between mb-5">
@@ -97,6 +209,8 @@ function CardContent({ practice, category }: { practice: Practice; category: Cat
         ))}
       </div>
       <button
+        onClick={onStart}
+        onPointerDown={(e) => e.stopPropagation()}
         className="w-full py-3.5 rounded-2xl text-[15px] font-semibold text-white mt-5 transition-all active:scale-[0.98]"
         style={{ background: "rgba(40,40,60,0.75)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
       >
@@ -106,16 +220,160 @@ function CardContent({ practice, category }: { practice: Practice; category: Cat
   );
 }
 
+// ─── Practice Session Overlay ─────────────────────────────────────────
+
+function PracticeSessionOverlay({
+  practice,
+  category,
+  onClose,
+}: {
+  practice: Practice;
+  category: Category;
+  onClose: () => void;
+}) {
+  const [stepIdx, setStepIdx] = useState(0);
+  const [done, setDone] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+
+  const currentStep = practice.steps[stepIdx];
+  const hasDuration = !done && currentStep?.duration != null;
+
+  useEffect(() => {
+    setElapsed(0);
+    if (!hasDuration) return;
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(id);
+  }, [stepIdx, done]);
+
+  function nextStep() {
+    if (stepIdx < practice.steps.length - 1) {
+      setStepIdx((i) => i + 1);
+    } else {
+      setDone(true);
+    }
+  }
+
+  const progress = hasDuration && currentStep.duration
+    ? Math.min(elapsed / currentStep.duration, 1)
+    : 0;
+
+  return (
+    <div
+      className="absolute inset-0 flex flex-col animate-fade-in"
+      style={{ backgroundImage: "url('/practice-session-bg.png')", backgroundSize: "cover", backgroundPosition: "center", zIndex: 60 }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 pt-12 pb-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#5A7AAA", opacity: 0.8 }}>
+            {category.name}
+          </p>
+          <p className="text-[14px] font-semibold mt-0.5" style={{ color: "#1A2A3A" }}>{practice.name}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
+          style={{ background: "rgba(90,122,170,0.12)" }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A5A8A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+        {done ? (
+          <>
+            {/* Checkmark */}
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6"
+              style={{ background: "rgba(90,122,170,0.15)" }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5A7AAA" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <p className="text-[14px] font-semibold uppercase tracking-widest mb-4" style={{ color: "#5A7AAA", opacity: 0.8 }}>
+              Practice complete
+            </p>
+            <p className="text-[22px] font-bold leading-snug" style={{ color: "#1A2A3A" }}>
+              {practice.completion}
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-10 px-10 py-3.5 rounded-full text-[15px] font-semibold text-white transition-all active:scale-95"
+              style={{ background: "#5A7AAA" }}
+            >
+              Done
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Step counter */}
+            <p className="text-[12px] font-semibold mb-8" style={{ color: "#5A7AAA", opacity: 0.7 }}>
+              Step {stepIdx + 1} of {practice.steps.length}
+            </p>
+            {/* Instruction */}
+            <p className="text-[22px] font-bold leading-snug mb-4" style={{ color: "#1A2A3A" }}>
+              {currentStep.instruction}
+            </p>
+            {/* Hint */}
+            {currentStep.hint && (
+              <p className="text-[13px] leading-relaxed" style={{ color: "#6A7A8A" }}>
+                {currentStep.hint}
+              </p>
+            )}
+            {/* Timer bar */}
+            {hasDuration && currentStep.duration && (
+              <div className="w-full mt-8">
+                <div className="w-full h-1.5 rounded-full" style={{ background: "rgba(90,122,170,0.18)" }}>
+                  <div
+                    className="h-1.5 rounded-full"
+                    style={{
+                      width: `${progress * 100}%`,
+                      background: "#5A7AAA",
+                      transition: "width 1s linear",
+                    }}
+                  />
+                </div>
+                <p className="text-[12px] mt-2 text-center" style={{ color: "#5A7AAA", opacity: 0.7 }}>
+                  {Math.max(currentStep.duration - elapsed, 0)}s
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Next button */}
+      {!done && (
+        <div className="px-6 pb-10">
+          <button
+            onClick={nextStep}
+            className="w-full py-4 rounded-2xl text-[15px] font-semibold text-white transition-all active:scale-[0.98]"
+            style={{ background: "#5A7AAA" }}
+          >
+            {stepIdx < practice.steps.length - 1 ? "Next →" : "Finish"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Practice Card Deck Overlay ────────────────────────────────────────
 
 function MicroPracticeOverlay({
   category,
   onClose,
+  initialIdx = 0,
 }: {
   category: Category;
   onClose: () => void;
+  initialIdx?: number;
 }) {
-  const [currentIdx, setCurrentIdx] = useState(0);
+  const [currentIdx, setCurrentIdx] = useState(initialIdx);
+  const [sessionPractice, setSessionPractice] = useState<Practice | null>(null);
   // exitingCard: the card animating out (rendered until onAnimationEnd)
   const [exitingCard, setExitingCard] = useState<{ practice: Practice; dir: "left" | "right" } | null>(null);
   const startX = useRef(0);
@@ -228,7 +486,7 @@ function MicroPracticeOverlay({
               }}
               onAnimationEnd={() => setExitingCard(null)}
             >
-              <CardContent practice={exitingCard.practice} category={category} />
+              <CardContent practice={exitingCard.practice} category={category} onStart={() => {}} />
             </div>
           )}
 
@@ -248,7 +506,7 @@ function MicroPracticeOverlay({
                   animation: exitingCard ? "cardEnterStack 0.42s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none",
                 }}
               >
-                <CardContent practice={practice} category={category} />
+                <CardContent practice={practice} category={category} onStart={() => setSessionPractice(practice)} />
               </div>
             );
           })()}
@@ -284,6 +542,15 @@ function MicroPracticeOverlay({
           />
         ))}
       </div>
+
+      {/* Session overlay — renders on top when a practice is started */}
+      {sessionPractice && (
+        <PracticeSessionOverlay
+          practice={sessionPractice}
+          category={category}
+          onClose={() => setSessionPractice(null)}
+        />
+      )}
     </div>
   );
 }
@@ -318,9 +585,26 @@ function AffirmationCard() {
   return (
     <button
       onClick={next}
-      className="w-full text-left px-4 py-3.5 mb-4 animate-fade-in delay-200 transition-all active:scale-[0.99]"
-      style={{ background: "rgba(224, 228, 248, 0.78)", borderRadius: 18 }}
+      className="w-full text-left mb-4 animate-fade-in delay-200 transition-all active:scale-[0.99] overflow-hidden relative"
+      style={{
+        borderRadius: 18,
+        background: "#EEF4FC",
+        boxShadow: "0 2px 12px rgba(80,70,160,0.10)",
+        height: 148,
+        flexShrink: 0,
+        padding: 0,
+      }}
     >
+      {/* Wave blobs */}
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: 18 }}>
+        <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(100,160,240,0.38)", filter: "blur(48px)", top: "-60%", left: "-5%", animation: "waveBlob1 13s ease-in-out infinite" }} />
+        <div style={{ position: "absolute", width: 180, height: 180, borderRadius: "50%", background: "rgba(180,220,255,0.55)", filter: "blur(40px)", top: "-30%", right: "-10%", animation: "waveBlob2 17s ease-in-out infinite" }} />
+        <div style={{ position: "absolute", width: 160, height: 160, borderRadius: "50%", background: "rgba(220,235,255,0.60)", filter: "blur(36px)", bottom: "-50%", left: "25%", animation: "waveBlob3 20s ease-in-out infinite" }} />
+        <div style={{ position: "absolute", width: 130, height: 130, borderRadius: "50%", background: "rgba(140,190,255,0.30)", filter: "blur(30px)", top: "10%", left: "40%", animation: "waveBlob1 15s ease-in-out 4s infinite reverse" }} />
+      </div>
+
+      {/* Content */}
+      <div style={{ position: "relative", zIndex: 1, padding: "14px 16px" }}>
       <div
         style={{
           opacity: animating ? 0 : 1,
@@ -328,23 +612,100 @@ function AffirmationCard() {
           transition: "opacity 0.22s ease, transform 0.22s ease",
         }}
       >
-        <div className="flex items-start justify-between gap-3 mb-1.5">
-          <p className="text-[14px] font-bold leading-snug flex-1" style={{ color: "#2A2A4A" }}>
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <p className="text-[17px] font-bold leading-snug flex-1" style={{ color: "#1A2A4A" }}>
             {title}
           </p>
-          <img src="/star-echo.png" alt="star" className="animate-rock" style={{ width: 44, height: 44, flexShrink: 0, objectFit: "contain" }} />
+          <div className="relative flex-shrink-0" style={{ width: 44, height: 44 }}>
+            <img src="/star-echo.png" alt="star" className="animate-rock" style={{ width: 44, height: 44, objectFit: "contain" }} />
+            {/* Sparkles */}
+            {[
+              // Top-right cluster
+              { cls: "animate-sparkle-1", top: -8,  right: -6,  size: 11, color: "#F5C842" },
+              { cls: "animate-sparkle-2", top: 4,   right: -13, size: 8,  color: "#A78BFA" },
+              { cls: "animate-sparkle-3", top: -12, right: 10,  size: 7,  color: "#F5C842" },
+              // Bottom-left cluster — pushed further away from star
+              { cls: "animate-sparkle-4", top: 46,  right: 40,  size: 10, color: "#FBCFE8" },
+              { cls: "animate-sparkle-5", top: 54,  right: 22,  size: 7,  color: "#F5C842" },
+              { cls: "animate-sparkle-6", top: 36,  right: 52,  size: 8,  color: "#A78BFA" },
+            ].map((s, i) => (
+              <svg key={i} className={s.cls} width={s.size} height={s.size} viewBox="0 0 20 20"
+                style={{ position: "absolute", top: s.top, right: s.right, pointerEvents: "none" }}>
+                <path d="M10 0 L11.8 8.2 L20 10 L11.8 11.8 L10 20 L8.2 11.8 L0 10 L8.2 8.2 Z" fill={s.color} />
+              </svg>
+            ))}
+          </div>
         </div>
-        <p className="text-[12px] leading-snug line-clamp-3" style={{ color: "#5A5A7A" }}>{body}</p>
+        <p className="text-[13px] leading-snug line-clamp-3" style={{ color: "#3A4A6A" }}>{body}</p>
         <div className="flex items-center justify-between mt-2.5">
           <div className="flex gap-1">
             {AFFIRMATIONS.map((_, i) => (
-              <div key={i} style={{ width: i === idx ? 14 : 4, height: 4, borderRadius: 999, background: i === idx ? "#8888CC" : "rgba(100,100,180,0.25)", transition: "all 0.3s ease" }} />
+              <div key={i} style={{ width: i === idx ? 14 : 4, height: 4, borderRadius: 999, background: i === idx ? "#8A70C0" : "rgba(140,110,200,0.22)", transition: "all 0.3s ease" }} />
             ))}
           </div>
-          <p className="text-[10px]" style={{ color: "#A0A8C0" }}>tap to refresh ›</p>
+          <p className="text-[10px]" style={{ color: "#9A88BB" }}>tap to refresh ›</p>
         </div>
       </div>
+      </div>
     </button>
+  );
+}
+
+// ─── Suggested Practice Card ──────────────────────────────────────────
+
+function SuggestedPracticeCard({
+  suggestion,
+  onOpen,
+}: {
+  suggestion: { practiceId: string; categoryId: string };
+  onOpen: () => void;
+}) {
+  const cat = CATEGORIES.find((c) => c.id === suggestion.categoryId)!;
+  const practice = cat?.practices.find((p) => p.id === suggestion.practiceId)!;
+  if (!cat || !practice) return null;
+
+  return (
+    <div
+      className="mb-3 animate-pop-in relative"
+      style={{
+        borderRadius: 18,
+        background: "rgba(255,255,255,0.72)",
+        boxShadow: "0 2px 12px rgba(80,70,160,0.07)",
+      }}
+    >
+      <button
+        onClick={onOpen}
+        className="w-full text-left flex items-center gap-3 px-4 py-3.5 transition-all active:scale-[0.98]"
+      >
+        {/* Icon bubble */}
+        <div
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 11,
+            background: `${cat.accentColor}15`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={cat.accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
+        {/* Text */}
+        <div className="flex-1 min-w-0">
+          <p style={{ fontSize: 11, color: cat.accentColor, fontWeight: 700, marginBottom: 1 }}>Echo suggests</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: "#1A2A3A", lineHeight: 1.2 }}>{practice.name}</p>
+          <p style={{ fontSize: 11, color: "#8A9AAA", marginTop: 1 }}>{cat.name} · {practice.duration}</p>
+        </div>
+        {/* Chevron */}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={cat.accentColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6, flexShrink: 0 }}>
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+    </div>
   );
 }
 
@@ -475,37 +836,32 @@ function LetterOverlay({ onClose }: { onClose: () => void }) {
 
 interface IslandScreenProps {
   onStartChat: () => void;
+  suggestedPractice?: { practiceId: string; categoryId: string } | null;
+  onDismissSuggestion?: () => void;
 }
 
-export default function IslandScreen({ onStartChat }: IslandScreenProps) {
+export default function IslandScreen({ onStartChat, suggestedPractice }: IslandScreenProps) {
   const [openCategory, setOpenCategory] = useState<Category | null>(null);
+  const [openPracticeIdx, setOpenPracticeIdx] = useState(0);
   const [letterOpen, setLetterOpen] = useState(false);
+  const [directSession, setDirectSession] = useState<{ practice: Practice; category: Category } | null>(null);
 
   return (
     <div
       className="h-full relative overflow-hidden"
+      style={{ backgroundImage: "url('/island-new-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}
     >
-      {/* Background image */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: "url('/island-new-bg.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
-
       {/* Scrollable content */}
-      <div className="relative h-full overflow-y-auto z-10 flex flex-col">
+      <div className="h-full overflow-y-auto flex flex-col">
         <div className="flex-1 flex flex-col px-5 pt-14 pb-6">
 
           {/* ── Header ── */}
           <div className="flex items-start gap-3 mb-4 animate-fade-in">
             <div className="flex-1">
-              <p className="text-[13px] font-medium mb-0.5" style={{ color: "#9A7A6A" }}>
+              <p className="text-[13px] font-medium mb-0.5" style={{ color: "#AA8888" }}>
                 Morning, Cynthia
               </p>
-              <h1 className="text-[26px] font-bold leading-tight" style={{ color: "#2A1A12" }}>
+              <h1 className="text-[26px] font-bold leading-tight" style={{ color: "#1A1A2A" }}>
                 How have things<br />been today?
               </h1>
             </div>
@@ -530,13 +886,10 @@ export default function IslandScreen({ onStartChat }: IslandScreenProps) {
             onClick={onStartChat}
             className="w-full flex items-center justify-between px-5 py-3.5 mb-3 transition-all active:scale-[0.98] animate-fade-in delay-100"
             style={{
-              background: "rgba(255,255,255,0.92)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              border: "1px solid rgba(255,255,255,1)",
+              background: "rgba(255,255,255,0.72)",
               borderRadius: 18,
-              boxShadow: "0 4px 16px rgba(180,120,100,0.14)",
-              color: "#2A1A10",
+              boxShadow: "0 2px 12px rgba(80,70,160,0.07)",
+              color: "#1A1A2A",
             }}
           >
             <div className="flex items-center gap-2.5">
@@ -553,39 +906,67 @@ export default function IslandScreen({ onStartChat }: IslandScreenProps) {
           {/* ── Affirmation card ── */}
           <AffirmationCard />
 
+          {/* ── Echo's suggested practice ── */}
+          {suggestedPractice && (
+            <SuggestedPracticeCard
+              suggestion={suggestedPractice}
+              onOpen={() => {
+                const cat = CATEGORIES.find((c) => c.id === suggestedPractice.categoryId);
+                if (!cat) return;
+                const practice = cat.practices.find((p) => p.id === suggestedPractice.practiceId);
+                if (!practice) return;
+                setDirectSession({ practice, category: cat });
+              }}
+            />
+          )}
+
           {/* ── Micro Practice ── */}
           <div className="flex-1 flex flex-col animate-fade-in delay-300">
-            <h2 className="text-[17px] font-bold mb-2.5" style={{ color: "#2A1A12" }}>
+            <h2 className="text-[17px] font-bold mb-2.5" style={{ color: "#1A1A2A" }}>
               Micro Practice
             </h2>
 
-            <div className="flex-1 flex flex-col gap-2.5">
+            <div className="flex-1 flex flex-col gap-2">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setOpenCategory(cat)}
-                  className="flex-1 w-full text-left flex flex-col justify-between px-4 pt-3 pb-4 transition-all active:scale-[0.98]"
+                  className="flex-1 w-full text-left flex flex-col items-start px-4 py-3.5 relative transition-all active:scale-[0.98]"
                   style={{
-                    background: cat.cardBg,
+                    background: "rgba(255,255,255,0.72)",
                     borderRadius: 18,
-                    backdropFilter: "blur(8px)",
-                    WebkitBackdropFilter: "blur(8px)",
+                    minHeight: 80,
+                    boxShadow: "0 2px 12px rgba(80,70,160,0.07)",
                   }}
                 >
-                  <span
-                    className="self-start text-[10px] font-semibold px-2.5 py-0.5 rounded-full"
-                    style={{ background: "rgba(180,180,180,0.35)", color: "#5A5A5A" }}
-                  >
-                    {cat.practices.length} practices
+                  {/* Duration pill */}
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: `${cat.accentColor}18`,
+                    color: cat.accentColor,
+                    borderRadius: 999,
+                    padding: "2px 10px",
+                    marginBottom: 5,
+                  }}>
+                    {cat.duration}
                   </span>
-                  <div>
-                    <p className="text-[14px] font-bold mb-0.5" style={{ color: "#1A2A3A" }}>
-                      {cat.name}
-                    </p>
-                    <p className="text-[12px]" style={{ color: "#7A8A9A" }}>
-                      {cat.tagline}
-                    </p>
-                  </div>
+
+                  {/* Name */}
+                  <p style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2A", marginBottom: 2 }}>
+                    {cat.name}
+                  </p>
+
+                  {/* Tagline */}
+                  <p style={{ fontSize: 12, color: "#888899", paddingRight: 28 }}>
+                    {cat.tagline}
+                  </p>
+
+                  {/* Chevron */}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={cat.accentColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", opacity: 0.5 }}>
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </button>
               ))}
             </div>
@@ -597,8 +978,20 @@ export default function IslandScreen({ onStartChat }: IslandScreenProps) {
       {openCategory && (
         <MicroPracticeOverlay
           category={openCategory}
-          onClose={() => setOpenCategory(null)}
+          onClose={() => { setOpenCategory(null); setOpenPracticeIdx(0); }}
+          initialIdx={openPracticeIdx}
         />
+      )}
+
+      {/* Direct session — from suggestion card */}
+      {directSession && (
+        <div className="absolute inset-0" style={{ zIndex: 55 }}>
+          <PracticeSessionOverlay
+            practice={directSession.practice}
+            category={directSession.category}
+            onClose={() => setDirectSession(null)}
+          />
+        </div>
       )}
 
       {/* Letter from Echo overlay */}

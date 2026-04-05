@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import type { SessionRecord, CardData, ChatMessage } from "../page";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -56,22 +57,24 @@ function MonthCalendarOverlay({
           top: 90,
           left: 16,
           right: 16,
-          background: "linear-gradient(160deg, #d8eaf8 0%, #e2eef9 50%, #eaf2fb 100%)",
+          background: "rgba(255,255,255,0.94)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
           borderRadius: 24,
-          boxShadow: "0 8px 32px rgba(30,60,100,0.15)",
+          boxShadow: "0 2px 12px rgba(80,70,160,0.07)",
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button onClick={prevMonth} className="w-9 h-9 flex items-center justify-center transition-all active:scale-90" style={{ borderRadius: 12, background: "rgba(255,255,255,0.6)" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D3A4A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A4A6A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-          <span className="text-[16px] font-bold" style={{ color: "#1A2A3A" }}>{monthLabel}</span>
+          <span className="text-[16px] font-bold" style={{ color: "#1A1A2A" }}>{monthLabel}</span>
           <button onClick={nextMonth} className="w-9 h-9 flex items-center justify-center transition-all active:scale-90" style={{ borderRadius: 12, background: "rgba(255,255,255,0.6)" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D3A4A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A4A6A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
@@ -80,7 +83,7 @@ function MonthCalendarOverlay({
         {/* Day labels */}
         <div className="grid grid-cols-7 mb-1">
           {DAY_LABELS.map(l => (
-            <div key={l} className="text-center text-[11px] font-medium py-1" style={{ color: "#8A9BB0" }}>{l}</div>
+            <div key={l} className="text-center text-[11px] font-medium py-1" style={{ color: "#888899" }}>{l}</div>
           ))}
         </div>
 
@@ -101,7 +104,7 @@ function MonthCalendarOverlay({
                   style={{
                     borderRadius: "50%",
                     background: isSelected ? "#E8909A" : isToday ? "rgba(255,255,255,0.7)" : "transparent",
-                    color: isSelected ? "white" : "#1A2A3A",
+                    color: isSelected ? "white" : "#1A1A2A",
                     border: isToday && !isSelected ? "1.5px solid #E8909A" : "none",
                   }}
                 >
@@ -146,7 +149,7 @@ function CalendarStrip({
           <div
             key={label}
             className="text-[11px] font-medium pb-1"
-            style={{ color: "#8A9BB0" }}
+            style={{ color: "#888899" }}
           >
             {label}
           </div>
@@ -164,7 +167,7 @@ function CalendarStrip({
                 style={{
                   borderRadius: "50%",
                   background: isSelected ? "#E8909A" : "transparent",
-                  color: isSelected ? "white" : "#1A2A3A",
+                  color: isSelected ? "white" : "#1A1A2A",
                 }}
               >
                 {date.getDate()}
@@ -212,12 +215,12 @@ function MoodChart({
   return (
     <div
       className="mx-4 mb-4 p-4"
-      style={{ background: "rgba(255,255,255,0.78)", borderRadius: 20 }}
+      style={{ background: "rgba(255,255,255,0.72)", borderRadius: 20, boxShadow: "0 2px 12px rgba(80,70,160,0.07)" }}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-[16px] font-bold" style={{ color: "#1A2A3A" }}>
+          <p className="text-[16px] font-bold" style={{ color: "#1A1A2A" }}>
             Satisfaction
           </p>
           <p className="text-[11px]" style={{ color: "#A0AEC0" }}>
@@ -323,12 +326,12 @@ function AISuggestions() {
     <div className="mx-4 mb-6">
       <p
         className="text-[13px] font-semibold mb-2 px-1"
-        style={{ color: "#1A2A3A" }}
+        style={{ color: "#1A1A2A" }}
       >
         AI Suggestions{" "}
         <span style={{ color: "#7B8FA0" }}>✦</span>
       </p>
-      <div className="p-4" style={{ background: "rgba(255,255,255,0.78)", borderRadius: 20 }}>
+      <div className="p-4" style={{ background: "rgba(255,255,255,0.72)", borderRadius: 20, boxShadow: "0 2px 12px rgba(80,70,160,0.07)" }}>
         <p className="text-[12px] mb-4" style={{ color: "#A0AEC0" }}>
           Based on weekly mood trend
         </p>
@@ -339,7 +342,7 @@ function AISuggestions() {
                 width: 10,
                 height: 10,
                 borderRadius: "50%",
-                background: "#B8A8D4",
+                background: "#C8B8E8",
                 flexShrink: 0,
                 marginTop: 3,
               }}
@@ -419,7 +422,7 @@ function SnapshotOverlay({ view, onClose }: { view: "W" | "M"; onClose: () => vo
   return (
     <div
       className="absolute inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: "rgba(140,170,200,0.35)", backdropFilter: "blur(8px)" }}
+      style={{ background: "rgba(220,210,248,0.30)", backdropFilter: "blur(8px)" }}
       onClick={onClose}
     >
       <div
@@ -427,7 +430,7 @@ function SnapshotOverlay({ view, onClose }: { view: "W" | "M"; onClose: () => vo
         style={{
           background: "rgba(255,255,255,0.95)",
           borderRadius: 28,
-          boxShadow: "0 12px 40px rgba(60,100,140,0.15)",
+          boxShadow: "0 12px 40px rgba(100,80,160,0.12)",
           maxHeight: "82vh",
           overflowY: "auto",
         }}
@@ -438,12 +441,12 @@ function SnapshotOverlay({ view, onClose }: { view: "W" | "M"; onClose: () => vo
           <div className="flex items-center gap-2">
             <img src="/user-avatar.jpg" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
             <div>
-              <p className="text-[14px] font-bold" style={{ color: "#1A2A3A" }}>Cynthia Liang</p>
-              <p className="text-[10px]" style={{ color: "#8A9BB0" }}>📅 {dateRange}</p>
+              <p className="text-[14px] font-bold" style={{ color: "#1A1A2A" }}>Cynthia Liang</p>
+              <p className="text-[10px]" style={{ color: "#888899" }}>📅 {dateRange}</p>
             </div>
           </div>
           <button onClick={onClose} className="transition-all active:scale-90">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A9BB0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888899" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
@@ -497,7 +500,7 @@ function SnapshotOverlay({ view, onClose }: { view: "W" | "M"; onClose: () => vo
             { label: "vs last period", value: view === "W" ? "+8%" : "+5%", sub: "overall ↑", color: "#A8A0C8" },
           ].map((s) => (
             <div key={s.label} className="p-2.5 rounded-xl" style={{ background: s.color + "14" }}>
-              <p className="text-[9px] font-medium mb-0.5" style={{ color: "#8A9BB0" }}>{s.label}</p>
+              <p className="text-[9px] font-medium mb-0.5" style={{ color: "#888899" }}>{s.label}</p>
               <p className="text-[15px] font-bold" style={{ color: s.color }}>{s.value}</p>
               <p className="text-[9px]" style={{ color: "#A0AEC0" }}>{s.sub}</p>
             </div>
@@ -536,25 +539,136 @@ function SnapshotOverlay({ view, onClose }: { view: "W" | "M"; onClose: () => vo
   );
 }
 
+// ─── Session Detail Overlay ───────────────────────────────────────────
+function SessionDetailOverlay({
+  session,
+  onClose,
+}: {
+  session: SessionRecord;
+  onClose: () => void;
+}) {
+  const { card, messages } = session;
+  const [tab, setTab] = useState<"analysis" | "transcript">("analysis");
+
+  // Match profile page blue palette
+  const BG = "radial-gradient(ellipse at 50% 25%, #BDD3EA 0%, #CCDDF2 30%, #DCE9F5 60%, #EDF3FA 100%)";
+  const CARD_BG = "rgba(255,255,255,0.62)";
+  const CARD_QUOTE = "linear-gradient(135deg, rgba(180,210,240,0.70) 0%, rgba(200,220,250,0.70) 100%)";
+  const TAG_BG = "rgba(255,255,255,0.80)";
+  const TEXT = "#1A1A2A";
+  const MUTED = "rgba(26,42,58,0.45)";
+  const TAB_PILL = "rgba(30,60,100,0.10)";
+  const TAB_ACTIVE = "rgba(255,255,255,0.80)";
+
+  return (
+    <div className="absolute inset-0 z-50 flex flex-col animate-fade-in" style={{ background: BG }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 pt-6 pb-3 flex-shrink-0">
+        <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-90" style={{ background: "rgba(255,255,255,0.55)" }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+        <div className="flex-1">
+          <div className="flex p-1 rounded-full" style={{ background: TAB_PILL }}>
+            {(["analysis", "transcript"] as const).map((t) => (
+              <button key={t} onClick={() => setTab(t)}
+                className="flex-1 py-1.5 text-[13px] font-semibold rounded-full transition-all"
+                style={{ background: tab === t ? TAB_ACTIVE : "transparent", color: TEXT, opacity: tab === t ? 1 : 0.45, boxShadow: tab === t ? "0 1px 4px rgba(30,60,100,0.10)" : "none" }}>
+                {t === "analysis" ? "Analysis" : "Transcript"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {tab === "analysis" && (
+        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
+          <div className="p-4" style={{ background: CARD_QUOTE, borderRadius: 18, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: MUTED }}>You are seen</p>
+            <p className="text-[15px] leading-relaxed font-medium" style={{ color: TEXT }}>"{card.validation_sentence}"</p>
+          </div>
+          {card.emotion_tags.length > 0 && (
+            <div className="p-4" style={{ background: CARD_BG, borderRadius: 18, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: MUTED }}>Feelings</p>
+              <div className="flex flex-wrap gap-2">
+                {card.emotion_tags.map((tag) => (
+                  <span key={tag} className="px-3 py-1.5 text-[13px] font-semibold" style={{ background: TAG_BG, color: TEXT, borderRadius: 999 }}>{tag}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="p-4" style={{ background: CARD_BG, borderRadius: 18, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: MUTED }}>Summary</p>
+            <p className="text-[14px] leading-relaxed" style={{ color: TEXT }}>{card.summary}</p>
+          </div>
+          <div className="p-4" style={{ background: CARD_BG, borderRadius: 18, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: MUTED }}>Insight</p>
+            <p className="text-[14px] leading-relaxed" style={{ color: TEXT }}>{card.insight}</p>
+          </div>
+        </div>
+      )}
+
+      {tab === "transcript" && (
+        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3 pt-1">
+          {messages.length === 0 ? (
+            <p className="text-[13px] text-center mt-8" style={{ color: MUTED }}>No transcript</p>
+          ) : messages.map((m) => (
+            <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className="px-4 py-2.5 text-[14px] leading-relaxed" style={{
+                maxWidth: "80%",
+                borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                background: m.role === "user" ? "rgba(160,200,240,0.55)" : "rgba(255,255,255,0.62)",
+                color: TEXT,
+              }}>{m.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Maps emotion tags to mood character images
+// mood-1: dizzy/overwhelmed bear  mood-2: frustrated yellow  mood-3: happy pink heart
+// mood-4: peaceful green ghost    mood-5: sad/neutral oval
+function getMoodImage(tags: string[]): string {
+  const t = tags.map((s) => s.toLowerCase()).join(" ");
+  if (/overwhelm|anxious|stress|panic|spiral|dizzy|lost|confus/.test(t)) return "/mood-1.png";
+  if (/tired|exhaust|frustrat|stuck|flat|low energy|heavy|drain/.test(t)) return "/mood-2.png";
+  if (/happy|content|relief|grateful|good|better|hopeful|warm/.test(t)) return "/mood-3.png";
+  if (/calm|peace|quiet|settled|safe|ground|present/.test(t)) return "/mood-4.png";
+  if (/sad|lonely|numb|empty|miss|disconn|hollow/.test(t)) return "/mood-5.png";
+  return "/mood-3.png"; // default: friendly
+}
+
 // ─── ProfileScreen ────────────────────────────────────────────────────
 export default function ProfileScreen({
   onOpenSettings,
+  sessions = [],
 }: {
   onOpenSettings?: () => void;
+  sessions?: SessionRecord[];
 }) {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [chartView, setChartView] = useState<"W" | "M">("W");
   const [showCalendar, setShowCalendar] = useState(false);
   const [showSnapshot, setShowSnapshot] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<SessionRecord | null>(null);
+
+  const dailySessions = sessions.filter((s) =>
+    s.timestamp.toDateString() === selectedDate.toDateString()
+  );
 
   return (
     <div className="h-full relative">
     <div
       className="h-full overflow-y-auto"
       style={{
-        background:
-          "radial-gradient(ellipse at 50% 25%, #BDD3EA 0%, #CCDDF2 30%, #DCE9F5 60%, #EDF3FA 100%)",
+        backgroundImage: "url('/island-new-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       }}
     >
       {/* Header */}
@@ -566,10 +680,10 @@ export default function ProfileScreen({
           style={{ objectFit: "cover" }}
         />
         <div className="flex-1 min-w-0">
-          <p className="text-[17px] font-bold" style={{ color: "#1A2A3A" }}>
+          <p className="text-[17px] font-bold" style={{ color: "#1A1A2A" }}>
             Cynthia Liang
           </p>
-          <p className="text-[13px]" style={{ color: "#8A9BB0" }}>
+          <p className="text-[13px]" style={{ color: "#888899" }}>
             Student &amp; photographer
           </p>
         </div>
@@ -585,7 +699,7 @@ export default function ProfileScreen({
               height="22"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#6A8FAA"
+              stroke="#8A88AA"
               strokeWidth="1.8"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -600,7 +714,7 @@ export default function ProfileScreen({
               height="22"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#6A8FAA"
+              stroke="#8A88AA"
               strokeWidth="1.8"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -619,41 +733,52 @@ export default function ProfileScreen({
 
       {/* Daily Activity */}
       <div className="mx-4 mb-4">
-        <p
-          className="text-[13px] font-semibold mb-2 px-1"
-          style={{ color: "#1A2A3A" }}
-        >
+        <p className="text-[13px] font-semibold mb-2 px-1" style={{ color: "#1A1A2A" }}>
           Daily Activity
         </p>
-        <div
-          className="flex items-center justify-between px-4 py-4"
-          style={{ background: "rgba(255,255,255,0.78)", borderRadius: 20 }}
-        >
-          <div>
-            <p className="text-[15px] font-bold" style={{ color: "#1A2A3A" }}>
+        {dailySessions.length === 0 ? (
+          <div className="flex flex-col items-center py-6" style={{ background: "rgba(255,255,255,0.72)", borderRadius: 20, boxShadow: "0 2px 12px rgba(80,70,160,0.07)" }}>
+            <img src="/mood-empty.png" alt="no sessions" style={{ width: 64, height: 64, objectFit: "contain", marginBottom: 8 }} />
+            <p className="text-[14px] font-semibold" style={{ color: "#1A1A2A" }}>
               {selectedDate.toLocaleDateString("en-US", { weekday: "long" })}
             </p>
-            <p className="text-[13px]" style={{ color: "#A0AEC0" }}>
-              {selectedDate.toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
+            <p className="text-[13px]" style={{ color: "#A0AEC0" }}>No sessions recorded</p>
           </div>
-          {/* Mood emoji — rotates by date */}
-          <img
-            src={`/mood-${(selectedDate.getDate() % 5) + 1}.png`}
-            alt="mood"
-            style={{ width: 56, height: 56, objectFit: "contain", flexShrink: 0 }}
-          />
-        </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {dailySessions.map((s) => {
+              const moodImg = getMoodImage(s.card.emotion_tags);
+              return (
+              <button
+                key={s.id}
+                onClick={() => setSelectedSession(s)}
+                className="w-full text-left flex items-center gap-3 px-4 py-3.5 transition-all active:scale-[0.98]"
+                style={{ background: "rgba(255,255,255,0.72)", borderRadius: 18, boxShadow: "0 2px 12px rgba(80,70,160,0.07)" }}
+              >
+                <img src={moodImg} alt="mood" style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0 }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold truncate" style={{ color: "#1A1A2A" }}>
+                    {s.card.title || s.card.summary?.replace(/\.$/, "").slice(0, 48) || "Chat session"}
+                  </p>
+                  <p className="text-[12px]" style={{ color: "#A0AEC0" }}>
+                    {s.timestamp.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} · {s.messages.length} messages
+                  </p>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A0AEC0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Mood Trend */}
       <div className="mx-4 mb-1">
         <p
           className="text-[13px] font-semibold mb-2 px-1"
-          style={{ color: "#1A2A3A" }}
+          style={{ color: "#1A1A2A" }}
         >
           Mood Trend
         </p>
@@ -676,6 +801,14 @@ export default function ProfileScreen({
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
           onClose={() => setShowCalendar(false)}
+        />
+      )}
+
+      {/* Session Detail Overlay */}
+      {selectedSession && (
+        <SessionDetailOverlay
+          session={selectedSession}
+          onClose={() => setSelectedSession(null)}
         />
       )}
     </div>

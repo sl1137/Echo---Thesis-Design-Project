@@ -83,7 +83,7 @@ function Card({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        background: "rgba(255,255,255,0.88)",
+        background: "rgba(255,255,255,0.72)",
         borderRadius: 18,
         overflow: "hidden",
         boxShadow: "0 1px 8px rgba(100,120,200,0.08)",
@@ -150,7 +150,9 @@ export default function SettingsScreen({ onBack, onLogout }: { onBack: () => voi
     <div
       className="h-full overflow-y-auto"
       style={{
-        background: "linear-gradient(160deg, #d4e6f8 0%, #ddeaf8 40%, #e6eefb 100%)",
+        backgroundImage: "url('/island-new-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       }}
     >
       {/* Header */}

@@ -1,4 +1,6 @@
-export type Tab = "island" | "drift" | "profile";
+"use client";
+
+type Tab = "island" | "drift" | "profile";
 
 interface BottomNavProps {
   activeTab: Tab;
@@ -41,10 +43,16 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ];
 
   return (
-    <div className="px-4 pb-5 pt-2">
+    <div className="px-5 pb-5 pt-2">
       <nav
-        className="flex items-center justify-around py-3 glass-strong shadow-echo-lg"
-        style={{ borderRadius: "var(--radius-lg)" }}
+        className="flex items-center justify-around py-1.5 px-1.5"
+        style={{
+          borderRadius: 999,
+          background: "rgba(255,255,255,0.82)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.09)",
+        }}
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -52,17 +60,24 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center gap-1 px-5 py-1 transition-all active:scale-95 ${
-                isActive ? "text-echo-ink" : "text-echo-ink/30"
-              }`}
+              className="flex flex-col items-center gap-0.5 px-5 py-2"
+              style={{
+                borderRadius: 999,
+                background: isActive ? "rgba(255,255,255,0.95)" : "transparent",
+                boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.10)" : "none",
+                transform: isActive ? "translateY(-1px) scale(1.04)" : "translateY(0) scale(1)",
+                transition: "all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              }}
             >
-              <span style={{ stroke: "currentColor" }}>{tab.icon}</span>
-              <span className={`text-[11px] ${isActive ? "font-semibold" : "font-medium"}`}>
+              <span style={{ color: isActive ? "#1a1a3e" : "rgba(26,26,62,0.35)", stroke: "currentColor" }}>
+                {tab.icon}
+              </span>
+              <span
+                className={`text-[11px] ${isActive ? "font-semibold" : "font-medium"}`}
+                style={{ color: isActive ? "#1a1a3e" : "rgba(26,26,62,0.35)" }}
+              >
                 {tab.label}
               </span>
-              {isActive && (
-                <div className="w-4 h-0.5 rounded-full bg-echo-ink mt-0.5" />
-              )}
             </button>
           );
         })}
