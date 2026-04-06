@@ -497,13 +497,16 @@ function VoiceFullMode({
 
         {/* Echo subtitle */}
         <p
-          className="text-center text-[17px] leading-relaxed px-8"
+          className="text-center text-[16px] leading-relaxed px-8"
           style={{
             color: "#1a1a3e",
             maxWidth: 300,
-            minHeight: 52,
             opacity: lastEchoText ? 1 : 0,
             transition: "opacity 0.4s ease",
+            display: "-webkit-box",
+            WebkitLineClamp: 4,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
           }}
         >
           {lastEchoText || " "}
