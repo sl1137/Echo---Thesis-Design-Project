@@ -287,6 +287,11 @@ body {
   0%   { transform: scale(0.5); opacity: 0.5; }
   100% { transform: scale(3.4); opacity: 0; }
 }
+
+@keyframes subtitleFadeUp {
+  from { opacity: 0.35; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-28px); }
+}
 .animate-ripple-1 { animation: ripple 2.6s ease-out infinite; }
 .animate-ripple-2 { animation: ripple 2.6s ease-out 0.87s infinite; }
 .animate-ripple-3 { animation: ripple 2.6s ease-out 1.73s infinite; }

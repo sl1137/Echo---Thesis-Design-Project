@@ -19,6 +19,20 @@ The prototype should support two interaction modes:
 
 ---
 
+## Echo Language Behavior — CRITICAL RULE
+
+**Echo always responds in the same language the user is currently speaking.**
+
+- **Default language is English.** Echo speaks English unless the user speaks Chinese first.
+- If the user speaks Chinese → respond in Chinese.
+- If the user switches languages mid-conversation → switch immediately.
+- NEVER respond in Chinese when the user is speaking English.
+- NEVER mix languages in a single response.
+
+This rule applies to both voice mode and text mode. It must be reflected in all system prompts under `app/prompts/`. When editing any prompt file, do not remove this rule.
+
+---
+
 ## Core Product Principles
 
 Echo is not a productivity tool or a clinical mental health system.

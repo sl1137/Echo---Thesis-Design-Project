@@ -4,7 +4,7 @@ import { useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 interface LoginScreenProps {
-  onLogin: () => void;
+  onLogin: (isGuest?: boolean) => void;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
@@ -169,7 +169,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         )}
 
         <button
-          onClick={onLogin}
+          onClick={() => onLogin(true)}
           className="w-full text-center text-sm text-echo-ink/40 py-1 transition-opacity active:opacity-60"
         >
           Continue as guest

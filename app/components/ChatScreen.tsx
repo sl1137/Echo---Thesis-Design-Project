@@ -450,6 +450,8 @@ function VoiceFullMode({
   onSwitchToText,
   onEndChat,
   lastEchoText,
+  streamingText,
+  prevEchoText,
 }: {
   status: VoiceStatus;
   error: string | null;
@@ -458,6 +460,8 @@ function VoiceFullMode({
   onSwitchToText: () => void;
   onEndChat: () => void;
   lastEchoText: string;
+  streamingText: string;
+  prevEchoText: string;
 }) {
   const isActive = status === "connected";
   const isConnecting = status === "connecting";
@@ -495,22 +499,43 @@ function VoiceFullMode({
           <Orb size={320} live glow={isActive} />
         </div>
 
-        {/* Echo subtitle */}
-        <p
-          className="text-center text-[16px] leading-relaxed px-8"
-          style={{
-            color: "#1a1a3e",
-            maxWidth: 300,
-            opacity: lastEchoText ? 1 : 0,
-            transition: "opacity 0.4s ease",
-            display: "-webkit-box",
-            WebkitLineClamp: 4,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
+        {/* Echo subtitle — two-layer animation */}
+        <div
+          className="relative text-center px-8"
+          style={{ width: 300, minHeight: 80 }}
         >
-          {lastEchoText || " "}
-        </p>
+          {/* Previous text — floats up and fades */}
+          {prevEchoText && !streamingText && (
+            <p
+              key={`prev-${prevEchoText.slice(0, 20)}`}
+              className="absolute inset-x-0 text-[15px] leading-relaxed text-center"
+              style={{
+                color: "#1a1a3e",
+                opacity: 0,
+                transform: "translateY(-24px)",
+                animation: "subtitleFadeUp 0.5s ease forwards",
+              }}
+            >
+              {prevEchoText}
+            </p>
+          )}
+          {/* Current streaming text — fades in */}
+          <p
+            key={`stream-${streamingText ? "streaming" : lastEchoText.slice(0, 20)}`}
+            className="text-[15px] leading-relaxed text-center"
+            style={{
+              color: "#1a1a3e",
+              opacity: (streamingText || lastEchoText) ? 1 : 0,
+              transition: "opacity 0.3s ease",
+              display: "-webkit-box",
+              WebkitLineClamp: 4,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {streamingText || lastEchoText || " "}
+          </p>
+        </div>
 
         {error && <p className="text-[12px] text-red-400 text-center">{error}</p>}
       </div>
@@ -585,6 +610,9 @@ export default function ChatScreen({
   const suggestedRef = useRef(false);
   const [validationCard, setValidationCard] = useState<CardData | null>(null);
   const [lastEchoText, setLastEchoText] = useState("");
+  const lastEchoTextRef = useRef("");
+  const [streamingText, setStreamingText] = useState("");
+  const [prevEchoText, setPrevEchoText] = useState("");
 
   // Stable user ID — prefer real auth userId, fall back to localStorage
   const userIdRef = useRef<string>(authUserId ?? "");
@@ -605,15 +633,31 @@ export default function ChatScreen({
 
   // Voice-full hook
   const handleTranscript = useCallback((role: "user" | "echo", text: string) => {
-    if (role === "echo") setLastEchoText(text);
+    if (role === "echo") {
+      setLastEchoText(text);
+      lastEchoTextRef.current = text;
+      setStreamingText("");
+    }
     setMessages((prev) => [
       ...prev,
       { id: `voice-${Date.now()}-${Math.random()}`, role, text },
     ]);
   }, []);
 
+  const handleTextDelta = useCallback((delta: string) => {
+    setStreamingText((prev) => prev + delta);
+  }, []);
+
+  const handleResponseStart = useCallback(() => {
+    // Move current streaming text to prev (fade out), reset streaming
+    setStreamingText((current) => {
+      setPrevEchoText(current || lastEchoTextRef.current);
+      return "";
+    });
+  }, []);
+
   const { status: voiceStatus, error: voiceError, connect: connectVoice, disconnect: disconnectVoice } =
-    useRealtimeVoice({ onTranscript: handleTranscript });
+    useRealtimeVoice({ onTranscript: handleTranscript, onTextDelta: handleTextDelta, onResponseStart: handleResponseStart });
 
   // Opening message
   const hasOpenedRef = useRef(false);
@@ -707,6 +751,8 @@ export default function ChatScreen({
       const card = await res.json();
       setValidationCard(card);
       onSaveSession?.({ id: Date.now().toString(), timestamp: new Date(), card, messages });
+      // Suggest a practice based on emotion tags (guaranteed at session end)
+      maybeSuggestPractice([card.summary, ...(card.emotion_tags ?? [])].join(" "));
 
       // Save to memory DB (fire-and-forget, don't block UI)
       if (userIdRef.current && card.summary) {
@@ -732,6 +778,7 @@ export default function ChatScreen({
       };
       setValidationCard(card);
       onSaveSession?.({ id: Date.now().toString(), timestamp: new Date(), card, messages });
+      maybeSuggestPractice("stressed anxious overwhelmed");
     } finally {
       setIsEnding(false);
     }
@@ -832,6 +879,8 @@ export default function ChatScreen({
           onSwitchToText={() => { disconnectVoice(); setMode("text"); }}
           onEndChat={handleEndChat}
           lastEchoText={lastEchoText}
+          streamingText={streamingText}
+          prevEchoText={prevEchoText}
         />
       )}
     </div>

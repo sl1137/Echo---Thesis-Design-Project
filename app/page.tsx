@@ -40,9 +40,20 @@ export default function EchoApp() {
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [suggestedPractice, setSuggestedPractice] = useState<SuggestedPractice | null>(null);
-  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [sessions, setSessions] = useState<SessionRecord[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("echo_guest_sessions");
+      if (!saved) return [];
+      return JSON.parse(saved).map((s: SessionRecord & { timestamp: string }) => ({
+        ...s,
+        timestamp: new Date(s.timestamp),
+      }));
+    } catch { return []; }
+  });
   const [userId, setUserId] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
+  const [guestMode, setGuestMode] = useState(false);
 
   // Check for existing Supabase session on mount (handles OAuth redirect return)
   useEffect(() => {
@@ -69,7 +80,7 @@ export default function EchoApp() {
   }, []);
 
   if (screen === "enter") return <EnterScreen onEnter={() => setScreen("login")} />;
-  if (screen === "login") return <LoginScreen onLogin={() => { setActiveTab("island"); setScreen("main"); }} />;
+  if (screen === "login") return <LoginScreen onLogin={(isGuest) => { setActiveTab("island"); if (isGuest) setGuestMode(true); setScreen("main"); }} />;
 
   return (
     <div
@@ -85,18 +96,18 @@ export default function EchoApp() {
                   onStartChat={() => setChatOpen(true)}
                   suggestedPractice={suggestedPractice}
                   onDismissSuggestion={() => setSuggestedPractice(null)}
-                  userId={userId || undefined}
+                  userId={guestMode ? undefined : (userId || undefined)}
                 />
               </div>
             )}
             {activeTab === "drift" && (
               <div key="drift" className="absolute inset-0 animate-tab-in">
-                <DriftSeaScreen isGuest={!userId} />
+                <DriftSeaScreen isGuest={guestMode || !userId} />
               </div>
             )}
             {activeTab === "profile" && (
               <div key="profile" className="absolute inset-0 animate-tab-in">
-                <ProfileScreen onOpenSettings={() => setSettingsOpen(true)} sessions={sessions} userName={userName} isGuest={!userId} userId={userId || undefined} />
+                <ProfileScreen onOpenSettings={() => setSettingsOpen(true)} sessions={sessions} userName={guestMode ? undefined : userName} isGuest={guestMode || !userId} userId={guestMode ? undefined : (userId || undefined)} />
               </div>
             )}
           </>
@@ -105,8 +116,17 @@ export default function EchoApp() {
           <ChatScreen
             onBack={() => setChatOpen(false)}
             onSuggestPractice={(p) => setSuggestedPractice(p)}
-            onSaveSession={(s) => setSessions((prev) => [s, ...prev])}
-            userId={userId}
+            onSaveSession={(s) => {
+              setSessions((prev) => {
+                const next = [s, ...prev];
+                // Persist for guest users (auth users rely on Supabase)
+                if (!userId) {
+                  try { localStorage.setItem("echo_guest_sessions", JSON.stringify(next)); } catch {}
+                }
+                return next;
+              });
+            }}
+            userId={guestMode ? "" : userId}
           />
         )}
         {settingsOpen && (

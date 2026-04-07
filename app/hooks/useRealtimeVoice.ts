@@ -17,6 +17,8 @@ export type VoiceStatus = "idle" | "connecting" | "connected" | "error";
 
 interface UseRealtimeVoiceOptions {
   onTranscript?: (role: "user" | "echo", text: string) => void;
+  onTextDelta?: (delta: string) => void;
+  onResponseStart?: () => void;
 }
 
 interface UseRealtimeVoiceReturn {
@@ -40,11 +42,15 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
   const isConnectingRef = useRef(false);
   const hasConnectedRef = useRef(false);
 
-  // Keep transcript callback in a ref so the data channel handler always sees latest
+  // Keep callbacks in refs so the data channel handler always sees latest
   const onTranscriptRef = useRef(options?.onTranscript);
+  const onTextDeltaRef = useRef(options?.onTextDelta);
+  const onResponseStartRef = useRef(options?.onResponseStart);
   useEffect(() => {
     onTranscriptRef.current = options?.onTranscript;
-  }, [options?.onTranscript]);
+    onTextDeltaRef.current = options?.onTextDelta;
+    onResponseStartRef.current = options?.onResponseStart;
+  }, [options?.onTranscript, options?.onTextDelta, options?.onResponseStart]);
 
   // Cleanup function that ensures all resources are released
   const cleanup = useCallback(() => {
@@ -184,6 +190,18 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
 
       dataChannel.onopen = () => {
         console.log("[RealtimeVoice] Data channel opened");
+        // Configure VAD with tighter silence detection to reduce dead-air pauses
+        dataChannel.send(JSON.stringify({
+          type: "session.update",
+          session: {
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 600,
+            },
+          },
+        }));
       };
 
       dataChannel.onerror = (err) => {
@@ -194,20 +212,27 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
       dataChannel.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          // User speech transcript (requires input_audio_transcription in session config)
-          if (
+
+          // New response starting — signal to cycle subtitle display
+          if (msg.type === "response.created") {
+            onResponseStartRef.current?.();
+          }
+          // Streaming transcript delta — for real-time subtitle display
+          else if (msg.type === "response.audio_transcript.delta" && msg.delta) {
+            onTextDeltaRef.current?.(msg.delta);
+          }
+          // User speech transcript
+          else if (
             msg.type === "conversation.item.input_audio_transcription.completed" &&
             msg.transcript?.trim()
           ) {
-            console.log("[RealtimeVoice] User transcript:", msg.transcript);
             onTranscriptRef.current?.("user", msg.transcript.trim());
           }
-          // Echo (AI) speech transcript
+          // Echo full transcript (for message history)
           else if (
             msg.type === "response.audio_transcript.done" &&
             msg.transcript?.trim()
           ) {
-            console.log("[RealtimeVoice] Echo transcript:", msg.transcript);
             onTranscriptRef.current?.("echo", msg.transcript.trim());
           }
         } catch {
