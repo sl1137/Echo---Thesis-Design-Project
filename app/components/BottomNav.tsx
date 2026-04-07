@@ -1,6 +1,6 @@
 "use client";
 
-type Tab = "island" | "drift" | "profile";
+export type Tab = "island" | "drift" | "profile";
 
 interface BottomNavProps {
   activeTab: Tab;

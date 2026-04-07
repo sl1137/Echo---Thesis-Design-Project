@@ -570,10 +570,12 @@ export default function ChatScreen({
   onBack,
   onSuggestPractice,
   onSaveSession,
+  userId: authUserId,
 }: {
   onBack: () => void;
   onSuggestPractice?: (p: { practiceId: string; categoryId: string }) => void;
   onSaveSession?: (s: SessionRecord) => void;
+  userId?: string;
 }) {
   const [mode, setMode] = useState<ChatMode>("text");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -583,6 +585,18 @@ export default function ChatScreen({
   const suggestedRef = useRef(false);
   const [validationCard, setValidationCard] = useState<CardData | null>(null);
   const [lastEchoText, setLastEchoText] = useState("");
+
+  // Stable user ID — prefer real auth userId, fall back to localStorage
+  const userIdRef = useRef<string>(authUserId ?? "");
+  useEffect(() => {
+    if (authUserId) {
+      userIdRef.current = authUserId;
+    } else {
+      let id = localStorage.getItem("echo_user_id");
+      if (!id) { id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; localStorage.setItem("echo_user_id", id); }
+      userIdRef.current = id;
+    }
+  }, [authUserId]);
 
   // voice-input recording
   const [isRecording, setIsRecording] = useState(false);
@@ -610,7 +624,7 @@ export default function ChatScreen({
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "[OPENING]", conversation: [] }),
+      body: JSON.stringify({ message: "[OPENING]", conversation: [], userId: userIdRef.current }),
     })
       .then((r) => r.json())
       .then((data) => {
@@ -635,6 +649,7 @@ export default function ChatScreen({
       body: JSON.stringify({
         message: userText,
         conversation: messages.slice(-20).map((m) => ({ role: m.role, content: m.text })),
+        userId: userIdRef.current,
       }),
     });
     if (!res.ok) throw new Error("Chat error");
@@ -683,14 +698,31 @@ export default function ChatScreen({
     if (mode === "voice-full") disconnectVoice();
     setIsEnding(true);
     try {
+      const conversation = messages.map((m) => ({ role: m.role, content: m.text }));
       const res = await fetch("/api/validation-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversation: messages.map((m) => ({ role: m.role, content: m.text })) }),
+        body: JSON.stringify({ conversation }),
       });
       const card = await res.json();
       setValidationCard(card);
       onSaveSession?.({ id: Date.now().toString(), timestamp: new Date(), card, messages });
+
+      // Save to memory DB (fire-and-forget, don't block UI)
+      if (userIdRef.current && card.summary) {
+        fetch("/api/session-save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: userIdRef.current,
+            emotion_tags: card.emotion_tags ?? [],
+            topics: card.title ? [card.title] : (card.emotion_tags ?? []),
+            summary: card.summary,
+            insight: card.insight,
+            validation_sentence: card.validation_sentence,
+          }),
+        }).catch((e) => console.error("[memory] session-save failed:", e));
+      }
     } catch {
       const card: CardData = {
         summary: "You took a moment to check in with yourself today.",

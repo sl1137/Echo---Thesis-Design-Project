@@ -613,20 +613,17 @@ function AffirmationCard() {
       className="w-full text-left mb-4 animate-fade-in delay-200 transition-all active:scale-[0.99] overflow-hidden relative"
       style={{
         borderRadius: 18,
-        background: "#EEF4FC",
+        backgroundImage: "url('/validation-card-bg.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
         boxShadow: "0 2px 12px rgba(80,70,160,0.10)",
         height: 148,
         flexShrink: 0,
         padding: 0,
       }}
     >
-      {/* Wave blobs */}
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: 18 }}>
-        <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(100,160,240,0.38)", filter: "blur(48px)", top: "-60%", left: "-5%", animation: "waveBlob1 13s ease-in-out infinite" }} />
-        <div style={{ position: "absolute", width: 180, height: 180, borderRadius: "50%", background: "rgba(180,220,255,0.55)", filter: "blur(40px)", top: "-30%", right: "-10%", animation: "waveBlob2 17s ease-in-out infinite" }} />
-        <div style={{ position: "absolute", width: 160, height: 160, borderRadius: "50%", background: "rgba(220,235,255,0.60)", filter: "blur(36px)", bottom: "-50%", left: "25%", animation: "waveBlob3 20s ease-in-out infinite" }} />
-        <div style={{ position: "absolute", width: 130, height: 130, borderRadius: "50%", background: "rgba(140,190,255,0.30)", filter: "blur(30px)", top: "10%", left: "40%", animation: "waveBlob1 15s ease-in-out 4s infinite reverse" }} />
-      </div>
+      {/* Overlay for text legibility */}
+      <div style={{ position: "absolute", inset: 0, borderRadius: 18, background: "rgba(255,255,255,0.52)" }} />
 
       {/* Content */}
       <div style={{ position: "relative", zIndex: 1, padding: "14px 16px" }}>
@@ -638,7 +635,7 @@ function AffirmationCard() {
         }}
       >
         <div className="flex items-start justify-between gap-3 mb-1">
-          <p className="text-[17px] font-bold leading-snug flex-1" style={{ color: "#1A2A4A" }}>
+          <p className="text-[17px] font-bold leading-snug flex-1" style={{ color: "#1A1A2E" }}>
             {title}
           </p>
           <div className="relative flex-shrink-0" style={{ width: 44, height: 44 }}>
@@ -661,7 +658,7 @@ function AffirmationCard() {
             ))}
           </div>
         </div>
-        <p className="text-[13px] leading-snug line-clamp-3" style={{ color: "#3A4A6A" }}>{body}</p>
+        <p className="text-[13px] leading-snug line-clamp-3" style={{ color: "#2A2A3A" }}>{body}</p>
         <div className="flex items-center justify-between mt-2.5">
           <div className="flex gap-1">
             {AFFIRMATIONS.map((_, i) => (

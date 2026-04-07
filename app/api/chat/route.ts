@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { TEXT_MODE_API } from "@/prompts";
+import { getMemoryContext } from "@/lib/memory";
 
 /**
  * POST /api/chat
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    let { message, conversation = [] } = body;
+    let { message, conversation = [], userId } = body;
 
     console.log("[API] Received request:", { message, conversationLength: conversation.length });
 
@@ -98,13 +99,17 @@ export async function POST(request: Request) {
     // Add language instruction based on user's language
     const languageInstruction = isOpening ? "" : getLanguageInstruction(message || "", conversation);
 
+    // Inject memory context if userId provided
+    const memoryContext = userId ? await getMemoryContext(userId) : "";
+    const memorySection = memoryContext ? `\n\n${memoryContext}` : "";
+
     // Determine language for system prompt JSON reminder
     const systemLang = isOpening ? 'zh' : detectLanguage(message || "");
     const jsonSystemReminder = systemLang === 'en'
       ? "\n\nPlease respond in JSON format with a 'bubbles' array."
       : "\n\n请用 JSON 格式返回你的回复，包含一个 'bubbles' 数组。";
 
-    const systemPrompt = TEXT_MODE_API + languageInstruction + jsonSystemReminder;
+    const systemPrompt = TEXT_MODE_API + memorySection + languageInstruction + jsonSystemReminder;
 
     // Reduce conversation history to 6 messages to avoid token issues
     const historySlice = isOpening ? 0 : 6;

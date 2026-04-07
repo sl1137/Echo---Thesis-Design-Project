@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabaseBrowser } from "@/lib/supabase-browser";
 import EnterScreen from "./components/EnterScreen";
 import LoginScreen from "./components/LoginScreen";
 import IslandScreen from "./components/IslandScreen";
@@ -40,6 +41,26 @@ export default function EchoApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [suggestedPractice, setSuggestedPractice] = useState<SuggestedPractice | null>(null);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [userId, setUserId] = useState<string>("");
+
+  // Check for existing Supabase session on mount (handles OAuth redirect return)
+  useEffect(() => {
+    supabaseBrowser.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        setUserId(data.session.user.id);
+        setScreen("main");
+      }
+    });
+    const { data: listener } = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+        setScreen("main");
+      } else {
+        setUserId("");
+      }
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   if (screen === "enter") return <EnterScreen onEnter={() => setScreen("login")} />;
   if (screen === "login") return <LoginScreen onLogin={() => setScreen("main")} />;
@@ -78,6 +99,7 @@ export default function EchoApp() {
             onBack={() => setChatOpen(false)}
             onSuggestPractice={(p) => setSuggestedPractice(p)}
             onSaveSession={(s) => setSessions((prev) => [s, ...prev])}
+            userId={userId}
           />
         )}
         {settingsOpen && (
