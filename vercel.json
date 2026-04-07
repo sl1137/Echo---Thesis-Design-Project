@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/generate-letter",
+      "schedule": "0 9 * * 1"
+    }
+  ]
+}

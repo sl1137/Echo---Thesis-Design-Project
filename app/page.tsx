@@ -42,28 +42,34 @@ export default function EchoApp() {
   const [suggestedPractice, setSuggestedPractice] = useState<SuggestedPractice | null>(null);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
 
   // Check for existing Supabase session on mount (handles OAuth redirect return)
   useEffect(() => {
     supabaseBrowser.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
-        setUserId(data.session.user.id);
+        const u = data.session.user;
+        setUserId(u.id);
+        setUserName(u.user_metadata?.full_name || u.email?.split("@")[0] || "");
         setScreen("main");
       }
     });
     const { data: listener } = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUserId(session.user.id);
+        const u = session.user;
+        setUserId(u.id);
+        setUserName(u.user_metadata?.full_name || u.email?.split("@")[0] || "");
         setScreen("main");
       } else {
         setUserId("");
+        setUserName("");
       }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
 
   if (screen === "enter") return <EnterScreen onEnter={() => setScreen("login")} />;
-  if (screen === "login") return <LoginScreen onLogin={() => setScreen("main")} />;
+  if (screen === "login") return <LoginScreen onLogin={() => { setActiveTab("island"); setScreen("main"); }} />;
 
   return (
     <div
@@ -79,17 +85,18 @@ export default function EchoApp() {
                   onStartChat={() => setChatOpen(true)}
                   suggestedPractice={suggestedPractice}
                   onDismissSuggestion={() => setSuggestedPractice(null)}
+                  userId={userId || undefined}
                 />
               </div>
             )}
             {activeTab === "drift" && (
               <div key="drift" className="absolute inset-0 animate-tab-in">
-                <DriftSeaScreen />
+                <DriftSeaScreen isGuest={!userId} />
               </div>
             )}
             {activeTab === "profile" && (
               <div key="profile" className="absolute inset-0 animate-tab-in">
-                <ProfileScreen onOpenSettings={() => setSettingsOpen(true)} sessions={sessions} />
+                <ProfileScreen onOpenSettings={() => setSettingsOpen(true)} sessions={sessions} userName={userName} isGuest={!userId} userId={userId || undefined} />
               </div>
             )}
           </>

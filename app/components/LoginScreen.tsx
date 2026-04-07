@@ -168,6 +168,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           </>
         )}
 
+        <button
+          onClick={onLogin}
+          className="w-full text-center text-sm text-echo-ink/40 py-1 transition-opacity active:opacity-60"
+        >
+          Continue as guest
+        </button>
+
         <p className="pt-2 text-center text-xs text-echo-ink-secondary/70 leading-relaxed">
           By signing up and using Echo, you agree to
           <br />

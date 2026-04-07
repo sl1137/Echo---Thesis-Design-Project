@@ -841,15 +841,15 @@ let _replies: BottleReply[] = SEED_REPLIES;
 
 // ─── DriftSeaScreen ───────────────────────────────────────────────────
 
-export default function DriftSeaScreen() {
+export default function DriftSeaScreen({ isGuest = true }: { isGuest?: boolean }) {
   const [activeTab, setActiveTab] = useState<"my" | "received">("my");
   const [driftOpen, setDriftOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [repliesOpen, setRepliesOpen] = useState(false);
   const [detailBottle, setDetailBottle] = useState<BottleEntry | null>(null);
   const [drifted, setDrifted] = useState(false);
-  const [myBottles, _setMyBottles] = useState<BottleEntry[]>(() => _myBottles);
-  const [replies, _setReplies] = useState<BottleReply[]>(() => _replies);
+  const [myBottles, _setMyBottles] = useState<BottleEntry[]>(() => isGuest ? _myBottles : []);
+  const [replies, _setReplies] = useState<BottleReply[]>(() => isGuest ? _replies : []);
   const unreadCount = replies.filter((r) => !r.read).length;
 
   function setMyBottles(updater: BottleEntry[] | ((prev: BottleEntry[]) => BottleEntry[])) {
@@ -991,7 +991,13 @@ export default function DriftSeaScreen() {
           {/* ── My Bottles ── */}
           {activeTab === "my" && (
             <div className="flex flex-col gap-3">
-              {myBottles.map((b) => (
+              {myBottles.length === 0 ? (
+                <div className="flex items-center justify-center py-16 px-6 text-center">
+                  <p className="text-[14px] leading-relaxed" style={{ color: "rgba(60,70,120,0.7)" }}>
+                    You haven't sent any bottles yet.<br />Start a conversation and let one drift.
+                  </p>
+                </div>
+              ) : myBottles.map((b) => (
                 <MyBottleCard
                   key={b.id}
                   bottle={b}
@@ -1005,9 +1011,15 @@ export default function DriftSeaScreen() {
           {/* ── Bottles Received ── */}
           {activeTab === "received" && (
             <div className="flex flex-col gap-3">
-              {RECEIVED_BOTTLES.map((b) => (
+              {isGuest ? RECEIVED_BOTTLES.map((b) => (
                 <ReceivedBottleCard key={b.id} bottle={b} />
-              ))}
+              )) : (
+                <div className="flex items-center justify-center py-16 px-6 text-center">
+                  <p className="text-[14px] leading-relaxed" style={{ color: "rgba(60,70,120,0.7)" }}>
+                    No bottles received yet. Check back later.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

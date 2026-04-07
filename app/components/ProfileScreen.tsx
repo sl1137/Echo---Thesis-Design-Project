@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { SessionRecord, CardData, ChatMessage } from "../page";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -203,12 +203,14 @@ function MoodChart({
   view,
   onViewChange,
   onOpenSnapshot,
+  overrideEmotions,
 }: {
   view: "W" | "M";
   onViewChange: (v: "W" | "M") => void;
   onOpenSnapshot: () => void;
+  overrideEmotions?: EmotionData[];
 }) {
-  const emotions = view === "W" ? EMOTIONS_W : EMOTIONS_M;
+  const emotions = overrideEmotions ?? (view === "W" ? EMOTIONS_W : EMOTIONS_M);
   const maxPct = Math.max(...emotions.map((e) => e.pct));
   const chartH = 130;
 
@@ -321,7 +323,7 @@ const SUGGESTIONS = [
   "Stress peaked toward the weekend. Consider setting a lighter schedule on Fridays as a buffer.",
 ];
 
-function AISuggestions() {
+function AISuggestions({ suggestions }: { suggestions: string[] }) {
   return (
     <div className="mx-4 mb-6">
       <p
@@ -333,9 +335,9 @@ function AISuggestions() {
       </p>
       <div className="p-4" style={{ background: "rgba(255,255,255,0.72)", borderRadius: 20, boxShadow: "0 2px 12px rgba(80,70,160,0.07)" }}>
         <p className="text-[12px] mb-4" style={{ color: "#A0AEC0" }}>
-          Based on weekly mood trend
+          Based on your recent conversations
         </p>
-        {SUGGESTIONS.map((text, i) => (
+        {suggestions.map((text, i) => (
           <div key={i} className="flex items-start gap-3 mb-4 last:mb-0">
             <div
               style={{
@@ -399,7 +401,7 @@ function TrendLine({ points, color }: { points: number[]; color: string }) {
 }
 
 // ─── Snapshot Overlay ────────────────────────────────────────────────
-function SnapshotOverlay({ view, onClose }: { view: "W" | "M"; onClose: () => void }) {
+function SnapshotOverlay({ view, onClose, userName }: { view: "W" | "M"; onClose: () => void; userName?: string }) {
   const emotions = view === "W" ? EMOTIONS_W : EMOTIONS_M;
   const trend = view === "W" ? TREND_W : TREND_M;
   const trendLabels = view === "W" ? TREND_W_LABELS : TREND_M_LABELS;
@@ -441,7 +443,7 @@ function SnapshotOverlay({ view, onClose }: { view: "W" | "M"; onClose: () => vo
           <div className="flex items-center gap-2">
             <img src="/user-avatar.jpg" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
             <div>
-              <p className="text-[14px] font-bold" style={{ color: "#1A1A2A" }}>Cynthia Liang</p>
+              <p className="text-[14px] font-bold" style={{ color: "#1A1A2A" }}>{userName ?? "Cynthia Liang"}</p>
               <p className="text-[10px]" style={{ color: "#888899" }}>📅 {dateRange}</p>
             </div>
           </div>
@@ -643,12 +645,20 @@ function getMoodImage(tags: string[]): string {
 }
 
 // ─── ProfileScreen ────────────────────────────────────────────────────
+type EmotionData = { label: string; color: string; pct: number };
+
 export default function ProfileScreen({
   onOpenSettings,
   sessions = [],
+  userName,
+  isGuest = true,
+  userId,
 }: {
   onOpenSettings?: () => void;
   sessions?: SessionRecord[];
+  userName?: string;
+  isGuest?: boolean;
+  userId?: string;
 }) {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date>(today);
@@ -656,6 +666,26 @@ export default function ProfileScreen({
   const [showCalendar, setShowCalendar] = useState(false);
   const [showSnapshot, setShowSnapshot] = useState(false);
   const [selectedSession, setSelectedSession] = useState<SessionRecord | null>(null);
+  const [realEmotions, setRealEmotions] = useState<EmotionData[] | null>(null);
+  const [realSuggestions, setRealSuggestions] = useState<string[] | null>(null);
+  const [moodInsufficient, setMoodInsufficient] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`/api/mood-data?userId=${userId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.emotions) setRealEmotions(data.emotions);
+        else if (data.insufficient) setMoodInsufficient(true);
+      })
+      .catch(() => {});
+    fetch(`/api/mood-suggestions?userId=${userId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.suggestions) setRealSuggestions(data.suggestions);
+      })
+      .catch(() => {});
+  }, [userId]);
 
   const dailySessions = sessions.filter((s) =>
     s.timestamp.toDateString() === selectedDate.toDateString()
@@ -681,7 +711,7 @@ export default function ProfileScreen({
         />
         <div className="flex-1 min-w-0">
           <p className="text-[17px] font-bold" style={{ color: "#1A1A2A" }}>
-            Cynthia Liang
+            {userName ?? "Cynthia Liang"}
           </p>
           <p className="text-[13px]" style={{ color: "#888899" }}>
             Student &amp; photographer
@@ -783,16 +813,37 @@ export default function ProfileScreen({
           Mood Trend
         </p>
       </div>
-      <MoodChart view={chartView} onViewChange={setChartView} onOpenSnapshot={() => setShowSnapshot(true)} />
+      {(isGuest || realEmotions) ? (
+        <MoodChart
+          view={chartView}
+          onViewChange={setChartView}
+          onOpenSnapshot={() => setShowSnapshot(true)}
+          overrideEmotions={realEmotions ?? undefined}
+        />
+      ) : moodInsufficient ? (
+        <div
+          className="mx-4 mb-4 rounded-2xl flex items-center justify-center py-10 px-6 text-center"
+          style={{ background: "rgba(255,255,255,0.6)" }}
+        >
+          <p className="text-[14px] leading-relaxed" style={{ color: "#888899" }}>
+            Chat with Echo a few times to see your mood insights here.
+          </p>
+        </div>
+      ) : (
+        <div className="mx-4 mb-4 flex items-center justify-center py-6">
+          <div className="w-5 h-5 border-2 border-echo-ink/20 border-t-echo-ink/60 rounded-full animate-spin" />
+        </div>
+      )}
 
       {/* AI Suggestions */}
-      <AISuggestions />
+      {isGuest && <AISuggestions suggestions={SUGGESTIONS} />}
+      {!isGuest && realSuggestions && <AISuggestions suggestions={realSuggestions} />}
 
     </div>
 
       {/* Snapshot Overlay — outside scrollable div, inside relative wrapper */}
       {showSnapshot && (
-        <SnapshotOverlay view={chartView} onClose={() => setShowSnapshot(false)} />
+        <SnapshotOverlay view={chartView} onClose={() => setShowSnapshot(false)} userName={userName} />
       )}
 
       {/* Month Calendar Overlay */}

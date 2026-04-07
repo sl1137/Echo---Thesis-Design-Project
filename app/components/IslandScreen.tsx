@@ -759,7 +759,9 @@ const ECHO_LETTER = {
   ],
 };
 
-function LetterOverlay({ onClose }: { onClose: () => void }) {
+type LetterData = { date: string; title: string; sections: { heading?: string; body: string }[] };
+
+function LetterOverlay({ onClose, letter }: { onClose: () => void; letter: LetterData }) {
   const [phase, setPhase] = useState<"envelope" | "opening" | "letter">("envelope");
 
   useEffect(() => {
@@ -803,7 +805,7 @@ function LetterOverlay({ onClose }: { onClose: () => void }) {
         >
           {/* Header row */}
           <div className="flex items-center justify-between px-6 pt-5 pb-2">
-            <p className="text-[12px]" style={{ color: "#A09080" }}>{ECHO_LETTER.date}</p>
+            <p className="text-[12px]" style={{ color: "#A09080" }}>{letter.date}</p>
             <button
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -822,11 +824,11 @@ function LetterOverlay({ onClose }: { onClose: () => void }) {
               className="font-bold leading-tight mb-5"
               style={{ fontSize: 26, color: "#2D2010", whiteSpace: "pre-line" }}
             >
-              {ECHO_LETTER.title}
+              {letter.title}
             </h1>
 
             {/* Sections */}
-            {ECHO_LETTER.sections.map((section, i) => (
+            {letter.sections.map((section, i) => (
               <div key={i}>
                 {section.heading && (
                   <h2
@@ -860,13 +862,44 @@ interface IslandScreenProps {
   onStartChat: () => void;
   suggestedPractice?: { practiceId: string; categoryId: string } | null;
   onDismissSuggestion?: () => void;
+  userId?: string;
 }
 
-export default function IslandScreen({ onStartChat, suggestedPractice }: IslandScreenProps) {
+export default function IslandScreen({ onStartChat, suggestedPractice, userId }: IslandScreenProps) {
   const [openCategory, setOpenCategory] = useState<Category | null>(null);
   const [openPracticeIdx, setOpenPracticeIdx] = useState(0);
   const [letterOpen, setLetterOpen] = useState(false);
   const [directSession, setDirectSession] = useState<{ practice: Practice; category: Category } | null>(null);
+  const [activeLetter, setActiveLetter] = useState<LetterData>(ECHO_LETTER);
+  const [hasUnread, setHasUnread] = useState(false);
+  const [letterInsufficient, setLetterInsufficient] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return; // guest — use hardcoded letter
+    fetch(`/api/generate-letter?userId=${userId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.letter) {
+          setActiveLetter(data.letter);
+          setHasUnread(!data.read);
+        } else if (data.insufficient) {
+          setLetterInsufficient(true);
+        }
+      })
+      .catch(() => {});
+  }, [userId]);
+
+  function handleOpenLetter() {
+    setLetterOpen(true);
+    if (userId && hasUnread) {
+      setHasUnread(false);
+      fetch("/api/generate-letter", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      }).catch(() => {});
+    }
+  }
 
   return (
     <div
@@ -890,8 +923,8 @@ export default function IslandScreen({ onStartChat, suggestedPractice }: IslandS
 
             {/* Envelope button */}
             <button
-              onClick={() => setLetterOpen(true)}
-              className="flex-shrink-0 transition-all active:scale-90"
+              onClick={handleOpenLetter}
+              className="flex-shrink-0 transition-all active:scale-90 relative"
               style={{ marginTop: 4 }}
             >
               <img
@@ -900,6 +933,14 @@ export default function IslandScreen({ onStartChat, suggestedPractice }: IslandS
                 className="animate-envelope"
                 style={{ width: 54, height: 54, objectFit: "contain" }}
               />
+              {hasUnread && (
+                <span
+                  className="absolute -top-1 -right-1 text-[13px] leading-none"
+                  style={{ color: "#E8C455", textShadow: "0 0 6px rgba(232,196,85,0.7)" }}
+                >
+                  ✦
+                </span>
+              )}
             </button>
           </div>
 
@@ -1034,7 +1075,22 @@ export default function IslandScreen({ onStartChat, suggestedPractice }: IslandS
       )}
 
       {/* Letter from Echo overlay */}
-      {letterOpen && <LetterOverlay onClose={() => setLetterOpen(false)} />}
+      {letterOpen && !letterInsufficient && <LetterOverlay onClose={() => setLetterOpen(false)} letter={activeLetter} />}
+      {letterOpen && letterInsufficient && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center animate-fade-in-slow"
+          style={{ background: "rgba(30,15,10,0.65)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
+          onClick={() => setLetterOpen(false)}
+        >
+          <div className="mx-8 p-6 rounded-3xl text-center" style={{ background: "#FBF8F4" }}>
+            <p className="text-2xl mb-3">✉️</p>
+            <p className="font-semibold mb-2" style={{ color: "#2D2010", fontSize: 16 }}>Your letter is on its way</p>
+            <p style={{ color: "#9A7A6A", fontSize: 14, lineHeight: 1.6 }}>
+              Chat with Echo a few more times and a personal letter will be waiting for you here.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
