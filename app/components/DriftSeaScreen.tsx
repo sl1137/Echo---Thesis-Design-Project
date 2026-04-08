@@ -36,6 +36,68 @@ interface BottleReply {
   read: boolean;
 }
 
+// ─── API Types ───────────────────────────────────────────────────────
+
+interface ApiBottle {
+  id: string;
+  content: string;
+  feeling_tags: string[];
+  topic_tags: string[];
+  created_at: string;
+  replied: boolean;
+  reply_read: boolean;
+}
+
+interface ApiReceivedBottle {
+  recipient_record_id: string;
+  content: string;
+  feeling_tags: string[];
+  topic_tags: string[];
+  received_at: string;
+  replied: boolean;
+}
+
+interface ApiReply {
+  id: string;
+  bottle_excerpt: string;
+  reply_text: string;
+  replied_at: string;
+  reply_read: boolean;
+}
+
+function apiBottleToEntry(b: ApiBottle): BottleEntry {
+  return {
+    id: b.id,
+    date: new Date(b.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+    content: b.content,
+    emotions: b.feeling_tags,
+    topics: b.topic_tags,
+    replies: b.replied ? [{ id: "replied", date: "", text: "Someone replied to your bottle.", from: "anonymous" }] : [],
+  };
+}
+
+function apiReceivedToBottle(r: ApiReceivedBottle): ReceivedBottle & { recipientRecordId: string; replied: boolean } {
+  return {
+    id: r.recipient_record_id,
+    recipientRecordId: r.recipient_record_id,
+    date: new Date(r.received_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    content: r.content,
+    emotions: r.feeling_tags,
+    topics: r.topic_tags,
+    replied: r.replied,
+  };
+}
+
+function apiReplyToBottleReply(r: ApiReply): BottleReply {
+  return {
+    id: r.id,
+    date: new Date(r.replied_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    bottleExcerpt: r.bottle_excerpt,
+    replyText: r.reply_text,
+    read: r.reply_read,
+  };
+}
+
 // ─── Sample Data ─────────────────────────────────────────────────────
 
 const SEED_MY_BOTTLES: BottleEntry[] = [
@@ -213,13 +275,36 @@ function SettingsIcon({ name }: { name: string }) {
 
 // ─── DriftProfileScreen ───────────────────────────────────────────────
 
-function DriftProfileScreen({ onBack }: { onBack: () => void }) {
-  const items = [
-    { icon: "bell",   label: "Notifications",    sub: "Gentle reminders and replies" },
-    { icon: "moon",   label: "Quiet Hours",       sub: "Pause notifications during rest" },
-    { icon: "globe",  label: "Language",          sub: "English" },
-    { icon: "shield", label: "Privacy & Safety",  sub: "Your data and boundaries" },
-  ];
+function DriftProfileScreen({ onBack, userId }: { onBack: () => void; userId?: string }) {
+  const [nickname, setNickname] = useState("");
+  const [bio, setBio] = useState("A Graduate Student");
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`/api/drift/profile?userId=${userId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.nickname) setNickname(d.nickname);
+        if (d.bio) setBio(d.bio);
+      })
+      .catch(() => {});
+  }, [userId]);
+
+  async function handleSave() {
+    if (!userId) return;
+    setSaving(true);
+    await fetch("/api/drift/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, nickname, bio }),
+    }).catch(() => {});
+    setSaving(false);
+    setEditing(false);
+  }
+
+  const displayName = nickname || "Anonymous";
 
   return (
     <div className="absolute inset-0 flex flex-col animate-fade-in" style={{ background: PAGE_BG, zIndex: 50 }}>
@@ -240,25 +325,72 @@ function DriftProfileScreen({ onBack }: { onBack: () => void }) {
       <div className="flex-1 overflow-y-auto px-5">
         {/* User card */}
         <div
-          className="flex items-center gap-3 mb-6 px-4 py-4"
+          className="mb-6 px-4 py-4"
           style={{ background: "rgba(255,255,255,0.78)", borderRadius: 18, boxShadow: "0 2px 12px rgba(80,100,160,0.07)" }}
         >
-          {/* Avatar placeholder */}
-          <div
-            className="w-14 h-14 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center"
-            style={{ background: "#D0DFF0" }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6A8AAA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-            </svg>
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className="w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center"
+              style={{ background: "#D0DFF0" }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6A8AAA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              {editing ? (
+                <input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Your nickname"
+                  className="w-full text-[15px] font-bold outline-none px-2 py-1 rounded-lg mb-1"
+                  style={{ background: "#EEF3FA", color: "#1A2A3A" }}
+                />
+              ) : (
+                <p className="text-[16px] font-bold" style={{ color: "#1A2A3A" }}>{displayName}</p>
+              )}
+              {editing ? (
+                <input
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="One-line bio"
+                  className="w-full text-[12px] outline-none px-2 py-1 rounded-lg"
+                  style={{ background: "#EEF3FA", color: "#6A7A8A" }}
+                />
+              ) : (
+                <p className="text-[13px]" style={{ color: "#7A8A9A" }}>{bio}</p>
+              )}
+            </div>
           </div>
-          <div className="flex-1">
-            <p className="text-[16px] font-bold" style={{ color: "#1A2A3A" }}>Cynnn</p>
-            <p className="text-[13px]" style={{ color: "#7A8A9A" }}>A Graduate Student</p>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#AABBC8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          {userId && (
+            editing ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditing(false)}
+                  className="flex-1 py-2 text-[13px] rounded-xl transition-all active:scale-95"
+                  style={{ background: "#EEF2FA", color: "#6A7A9A" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1 py-2 text-[13px] font-semibold rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                  style={{ background: "#5A7AAA", color: "white" }}
+                >
+                  {saving ? "Saving…" : "Save"}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEditing(true)}
+                className="w-full py-2 text-[13px] rounded-xl transition-all active:scale-95"
+                style={{ background: "#EEF2FA", color: "#5A7AAA" }}
+              >
+                Edit profile
+              </button>
+            )
+          )}
         </div>
 
         {/* Settings label */}
@@ -266,7 +398,12 @@ function DriftProfileScreen({ onBack }: { onBack: () => void }) {
 
         {/* Settings list */}
         <div style={{ background: "rgba(255,255,255,0.78)", borderRadius: 18, boxShadow: "0 2px 12px rgba(80,100,160,0.07)", overflow: "hidden" }}>
-          {items.map((item, i) => (
+          {[
+            { icon: "bell",   label: "Notifications",    sub: "Gentle reminders and replies" },
+            { icon: "moon",   label: "Quiet Hours",       sub: "Pause notifications during rest" },
+            { icon: "globe",  label: "Language",          sub: "English" },
+            { icon: "shield", label: "Privacy & Safety",  sub: "Your data and boundaries" },
+          ].map((item, i, arr) => (
             <div key={item.label}>
               <button className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all active:bg-black/5">
                 <div className="w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0" style={{ background: "#EEF3F9" }}>
@@ -280,7 +417,7 @@ function DriftProfileScreen({ onBack }: { onBack: () => void }) {
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
-              {i < items.length - 1 && (
+              {i < arr.length - 1 && (
                 <div style={{ height: 1, background: "#EEF2F8", marginLeft: 56 }} />
               )}
             </div>
@@ -296,9 +433,11 @@ function DriftProfileScreen({ onBack }: { onBack: () => void }) {
 function DriftBottleScreen({
   onBack,
   onDrifted,
+  userId,
 }: {
   onBack: () => void;
   onDrifted: (bottle: BottleEntry) => void;
+  userId?: string;
 }) {
   const [content, setContent] = useState("");
   const [feelings, setFeelings] = useState<string[]>([]);
@@ -307,6 +446,7 @@ function DriftBottleScreen({
   const [topicOtherOpen, setTopicOtherOpen] = useState(false);
   const [feelingOtherVal, setFeelingOtherVal] = useState("");
   const [topicOtherVal, setTopicOtherVal] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   function toggle(list: string[], setList: (v: string[]) => void, tag: string) {
     setList(list.includes(tag) ? list.filter((t) => t !== tag) : [...list, tag]);
@@ -325,8 +465,9 @@ function DriftBottleScreen({
     setVal("");
   }
 
-  function handleDrift() {
-    if (!content.trim()) return;
+  async function handleDrift() {
+    if (!content.trim() || submitting) return;
+    setSubmitting(true);
     const now = new Date();
     const entry: BottleEntry = {
       id: Date.now().toString(),
@@ -336,6 +477,22 @@ function DriftBottleScreen({
       topics,
       replies: [],
     };
+
+    if (userId) {
+      try {
+        const res = await fetch("/api/drift/bottle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, content: content.trim(), feelingTags: feelings, topicTags: topics }),
+        });
+        const data = await res.json();
+        if (data.bottleId) entry.id = data.bottleId;
+      } catch {
+        // Fall through — still show confirmation even if API fails
+      }
+    }
+
+    setSubmitting(false);
     onDrifted(entry);
   }
 
@@ -485,11 +642,11 @@ function DriftBottleScreen({
         {/* Let it drift */}
         <button
           onClick={handleDrift}
-          disabled={!content.trim()}
+          disabled={!content.trim() || submitting}
           className="w-full py-3.5 text-[15px] font-semibold transition-all active:scale-[0.98] disabled:opacity-40"
           style={{ borderRadius: 999, background: "#7A9BAC", color: "white" }}
         >
-          Let it drift
+          {submitting ? "Drifting…" : "Let it drift"}
         </button>
         <p className="text-center text-[12px] mt-3" style={{ color: "#8A9AAA" }}>
           ≈ Anonymous. Gentle. No pressure to continue.
@@ -710,17 +867,40 @@ function MyBottleCard({ bottle, onRecall, onOpen }: { bottle: BottleEntry; onRec
 
 // ─── Received Bottle Card ────────────────────────────────────────────
 
-function ReceivedBottleCard({ bottle }: { bottle: ReceivedBottle }) {
+function ReceivedBottleCard({
+  bottle,
+  userId,
+  recipientRecordId,
+  onReplySent,
+}: {
+  bottle: ReceivedBottle;
+  userId?: string;
+  recipientRecordId?: string;
+  onReplySent?: (id: string) => void;
+}) {
   const [hearted, setHearted] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const [replySent, setReplySent] = useState(false);
+  const [replySent, setReplySent] = useState((bottle as ReceivedBottle & { replied?: boolean }).replied ?? false);
+  const [sending, setSending] = useState(false);
 
-  function sendReply() {
-    if (!replyText.trim()) return;
+  async function sendReply() {
+    if (!replyText.trim() || sending) return;
+    setSending(true);
+    if (userId && recipientRecordId) {
+      try {
+        await fetch("/api/drift/reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, recipientRecordId, replyText: replyText.trim() }),
+        });
+      } catch { /* show success anyway */ }
+    }
+    setSending(false);
     setReplySent(true);
     setReplyOpen(false);
     setReplyText("");
+    onReplySent?.(recipientRecordId ?? bottle.id);
   }
 
   return (
@@ -797,11 +977,11 @@ function ReceivedBottleCard({ bottle }: { bottle: ReceivedBottle }) {
           />
           <button
             onClick={sendReply}
-            disabled={!replyText.trim()}
+            disabled={!replyText.trim() || sending}
             className="px-4 py-2 text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-40"
             style={{ background: "#5A7AAA", color: "white", borderRadius: 10 }}
           >
-            Send
+            {sending ? "…" : "Send"}
           </button>
         </div>
       )}
@@ -841,7 +1021,7 @@ let _replies: BottleReply[] = SEED_REPLIES;
 
 // ─── DriftSeaScreen ───────────────────────────────────────────────────
 
-export default function DriftSeaScreen({ isGuest = true }: { isGuest?: boolean }) {
+export default function DriftSeaScreen({ isGuest = true, userId }: { isGuest?: boolean; userId?: string }) {
   const [activeTab, setActiveTab] = useState<"my" | "received">("my");
   const [driftOpen, setDriftOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -849,20 +1029,41 @@ export default function DriftSeaScreen({ isGuest = true }: { isGuest?: boolean }
   const [detailBottle, setDetailBottle] = useState<BottleEntry | null>(null);
   const [drifted, setDrifted] = useState(false);
   const [myBottles, _setMyBottles] = useState<BottleEntry[]>(() => isGuest ? _myBottles : []);
+  const [receivedBottles, setReceivedBottles] = useState<(ReceivedBottle & { recipientRecordId: string; replied: boolean })[]>([]);
   const [replies, _setReplies] = useState<BottleReply[]>(() => isGuest ? _replies : []);
   const unreadCount = replies.filter((r) => !r.read).length;
+
+  // Fetch real data for logged-in users
+  useEffect(() => {
+    if (!userId) return;
+    Promise.all([
+      fetch(`/api/drift/mine?userId=${userId}`).then((r) => r.json()),
+      fetch(`/api/drift/received?userId=${userId}`).then((r) => r.json()),
+      fetch(`/api/drift/replies?userId=${userId}`).then((r) => r.json()),
+    ]).then(([mine, received, repliesData]) => {
+      if (mine.bottles) {
+        _setMyBottles(mine.bottles.map(apiBottleToEntry));
+      }
+      if (received.bottles) {
+        setReceivedBottles(received.bottles.map(apiReceivedToBottle));
+      }
+      if (repliesData.replies) {
+        _setReplies(repliesData.replies.map(apiReplyToBottleReply));
+      }
+    }).catch(() => {});
+  }, [userId]);
 
   function setMyBottles(updater: BottleEntry[] | ((prev: BottleEntry[]) => BottleEntry[])) {
     _setMyBottles((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      _myBottles = next;
+      if (isGuest) _myBottles = next;
       return next;
     });
   }
   function setReplies(updater: BottleReply[] | ((prev: BottleReply[]) => BottleReply[])) {
     _setReplies((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      _replies = next;
+      if (isGuest) _replies = next;
       return next;
     });
   }
@@ -876,6 +1077,24 @@ export default function DriftSeaScreen({ isGuest = true }: { isGuest?: boolean }
   function handleDriftDismiss() {
     setDrifted(false);
     setActiveTab("my");
+  }
+
+  async function handleRepliesOpen() {
+    setRepliesOpen(true);
+    // Mark all unread replies as read via API
+    if (userId) {
+      const unread = replies.filter((r) => !r.read);
+      await Promise.all(
+        unread.map((r) =>
+          fetch("/api/drift/replies", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipientRecordId: r.id }),
+          })
+        )
+      ).catch(() => {});
+    }
+    setReplies((prev) => prev.map((r) => ({ ...r, read: true })));
   }
 
   return (
@@ -893,7 +1112,7 @@ export default function DriftSeaScreen({ isGuest = true }: { isGuest?: boolean }
             <div className="flex items-center gap-1 mt-1">
               {/* Bell — replies */}
               <button
-                onClick={() => setRepliesOpen(true)}
+                onClick={handleRepliesOpen}
                 className="w-10 h-10 flex items-center justify-center relative transition-all active:scale-90"
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6A8AAA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -972,15 +1191,16 @@ export default function DriftSeaScreen({ isGuest = true }: { isGuest?: boolean }
           </button>
 
           {/* ── Tab switcher ── */}
-          <div className="flex gap-6 mb-4">
+          <div className="flex p-1 rounded-full mb-4" style={{ background: "rgba(100,130,170,0.12)" }}>
             {(["my", "received"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className="pb-1 text-[15px] font-semibold transition-all"
+                className="flex-1 py-1.5 text-[14px] font-semibold rounded-full transition-all"
                 style={{
                   color: activeTab === tab ? "#E07840" : "#9AAAB8",
-                  borderBottom: `2px solid ${activeTab === tab ? "#E07840" : "transparent"}`,
+                  background: activeTab === tab ? "rgba(255,255,255,0.82)" : "transparent",
+                  boxShadow: activeTab === tab ? "0 1px 4px rgba(80,100,160,0.10)" : "none",
                 }}
               >
                 {tab === "my" ? "My Bottles" : "Bottles Received"}
@@ -1013,13 +1233,21 @@ export default function DriftSeaScreen({ isGuest = true }: { isGuest?: boolean }
             <div className="flex flex-col gap-3">
               {isGuest ? RECEIVED_BOTTLES.map((b) => (
                 <ReceivedBottleCard key={b.id} bottle={b} />
-              )) : (
+              )) : receivedBottles.length === 0 ? (
                 <div className="flex items-center justify-center py-16 px-6 text-center">
                   <p className="text-[14px] leading-relaxed" style={{ color: "rgba(60,70,120,0.7)" }}>
                     No bottles received yet. Check back later.
                   </p>
                 </div>
-              )}
+              ) : receivedBottles.map((b) => (
+                <ReceivedBottleCard
+                  key={b.id}
+                  bottle={b}
+                  userId={userId}
+                  recipientRecordId={b.recipientRecordId}
+                  onReplySent={(id) => setReceivedBottles((prev) => prev.map((r) => r.id === id ? { ...r, replied: true } : r))}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -1028,10 +1256,10 @@ export default function DriftSeaScreen({ isGuest = true }: { isGuest?: boolean }
 
       {/* ── Overlays ── */}
       {driftOpen && (
-        <DriftBottleScreen onBack={() => setDriftOpen(false)} onDrifted={handleDrifted} />
+        <DriftBottleScreen onBack={() => setDriftOpen(false)} onDrifted={handleDrifted} userId={userId} />
       )}
       {profileOpen && (
-        <DriftProfileScreen onBack={() => setProfileOpen(false)} />
+        <DriftProfileScreen onBack={() => setProfileOpen(false)} userId={userId} />
       )}
       {repliesOpen && (
         <RepliesScreen

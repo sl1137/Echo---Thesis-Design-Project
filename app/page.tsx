@@ -102,7 +102,7 @@ export default function EchoApp() {
             )}
             {activeTab === "drift" && (
               <div key="drift" className="absolute inset-0 animate-tab-in">
-                <DriftSeaScreen isGuest={guestMode || !userId} />
+                <DriftSeaScreen isGuest={guestMode || !userId} userId={guestMode ? undefined : userId} />
               </div>
             )}
             {activeTab === "profile" && (
