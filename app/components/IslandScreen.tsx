@@ -113,6 +113,17 @@ const CATEGORIES: Category[] = [
           { instruction: "Breathe slowly and just watch it.", duration: 12 },
         ],
       },
+      {
+        id: "reset_my_body", name: "Reset My Body", bestFor: ["body tension", "too activated", "impulsive urge"], duration: "1–2 min",
+        description: "Reduce overwhelming activation through a quick physical reset.", blobColor: "#DBE3FF",
+        completion: "We're not trying to feel perfect. Just a little less flooded.",
+        steps: [
+          { instruction: "Choose one of these right now:", hint: "Wash your hands with cool water — or hold something cold for 10 seconds." },
+          { instruction: "Or: walk quickly in place for 30 seconds, or tense and release your fists 5 times.", hint: "Any movement counts." },
+          { instruction: "Or: take 3 slow breaths out, making each exhale longer than the inhale.", duration: 12 },
+          { instruction: "Notice: even a little shift is enough.", hint: "You don't have to feel calm — just slightly less flooded." },
+        ],
+      },
     ],
   },
   {
@@ -164,6 +175,28 @@ const CATEGORIES: Category[] = [
           { instruction: "Ask gently: is this a fact, or is this a fear?", duration: 8 },
         ],
       },
+      {
+        id: "check_the_facts", name: "Check the Facts Gently", bestFor: ["over-interpreting", "reading into it", "painful conclusions"], duration: "3–4 min",
+        description: "Soften over-interpretation without feeling invalidated.", blobColor: "#E5D8F5",
+        completion: "You held the feeling and questioned the story. That takes something.",
+        steps: [
+          { instruction: "What's the most painful thought or conclusion in this?", hint: "\"She doesn't care.\" \"I ruined it.\" Just name it." },
+          { instruction: "What do you actually know for sure?", hint: "Stick to what you observed, not what you concluded." },
+          { instruction: "What part of this are you guessing?", hint: "Be honest — most conclusions involve at least some guesswork." },
+          { instruction: "Is there another explanation that could also be true — even if you don't fully believe it?", duration: 8 },
+        ],
+      },
+      {
+        id: "why_hitting_hard", name: "Why Is This Hitting So Hard?", bestFor: ["reaction feels too big", "know it's small but still falling apart", "depleted"], duration: "2–3 min",
+        description: "Sometimes something hits harder because you were already carrying a lot.", blobColor: "#FBF7D5",
+        completion: "This may not be too much emotion. It may be accumulated load.",
+        steps: [
+          { instruction: "Notice: is the reaction bigger than the event alone seems to explain?", hint: "That's a signal, not a flaw." },
+          { instruction: "Check if any of these are true today:", hint: "Not enough sleep. Physically tired. Haven't eaten well. Under pressure for days." },
+          { instruction: "Or these:", hint: "This touched an older wound. Been feeling alone. Had to hold yourself together for too long." },
+          { instruction: "Say gently: \"This may not be overreacting. This may be accumulated load.\"", duration: 6 },
+        ],
+      },
     ],
   },
   {
@@ -200,6 +233,39 @@ const CATEGORIES: Category[] = [
           { instruction: "You're only committing to 10 minutes. Not the whole task. Just 10.", hint: "Start a timer if that helps." },
           { instruction: "Start with the lowest-friction part.", hint: "Whatever feels least like work right now." },
           { instruction: "When the time is up, you can stop. You chose to show up — that counts.", hint: "If you want to keep going, great. If not, you still did it." },
+        ],
+      },
+      {
+        id: "a_fairer_thought", name: "A Fairer Thought", bestFor: ["harsh self-judgment", "ready to reframe", "automatic thought identified"], duration: "3–4 min",
+        description: "Move from a harsh thought to a more grounded, realistic one.", blobColor: "#FFDBDB",
+        completion: "A fairer thought isn't fake positive. It's just more honest.",
+        steps: [
+          { instruction: "Write out the harsh thought exactly as it shows up.", hint: "\"I'm not good enough.\" \"I always mess things up.\" Don't soften it yet." },
+          { instruction: "What makes this thought feel believable right now?", hint: "There's usually something real underneath — acknowledge it." },
+          { instruction: "Is there anything the thought is leaving out or overstating?", hint: "Even one thing counts." },
+          { instruction: "Try writing a fairer version — not fake positive, just more balanced.", hint: "\"I'm struggling right now\" is fairer than \"I'm a failure.\"", duration: 10 },
+        ],
+      },
+      {
+        id: "say_it_clearly", name: "Say It Clearly", bestFor: ["anxious about a message", "need to follow up", "conflict or boundary"], duration: "5 min",
+        description: "Help you communicate clearly in stressful relational situations.", blobColor: "#FFECD8",
+        completion: "You found the words. Now you can decide if and when to send them.",
+        steps: [
+          { instruction: "What happened that you need to address?", hint: "Keep it to the facts — what actually occurred." },
+          { instruction: "What do you actually need from this person or situation?", hint: "An update? Clarity? A boundary? Just one thing." },
+          { instruction: "How do you want to come across?", hint: "Gentle but clear? Professional? Direct? Choose the tone that fits." },
+          { instruction: "Draft one or two sentences in your head — or write them out.", hint: "You don't have to send it now. Just find the words first." },
+        ],
+      },
+      {
+        id: "what_would_help_future_me", name: "What Would Help Future Me?", bestFor: ["already calmer", "want a takeaway", "looking back"], duration: "3–4 min",
+        description: "Turn this emotional episode into a small piece of self-knowledge.", blobColor: "#FFDBDB",
+        completion: "You turned this moment into something useful for the next one.",
+        steps: [
+          { instruction: "Looking back: what triggered you most?", hint: "Be specific if you can." },
+          { instruction: "What made it worse? What helped even a little?", hint: "Even a tiny thing counts as helping." },
+          { instruction: "Choose one takeaway for next time.", hint: "\"Next time I'll pause before replying.\" \"Next time I'll ground first.\"" },
+          { instruction: "Write one line to future you.", hint: "\"Next time this happens, start with ___.\"", duration: 8 },
         ],
       },
     ],
@@ -246,14 +312,19 @@ function CardContent({ practice, category, onStart }: { practice: Practice; cate
 
 // ─── Practice Session Overlay ─────────────────────────────────────────
 
-function PracticeSessionOverlay({
+export { CATEGORIES };
+export type { Practice, Category };
+
+export function PracticeSessionOverlay({
   practice,
   category,
   onClose,
+  doneLabel,
 }: {
   practice: Practice;
   category: Category;
   onClose: () => void;
+  doneLabel?: string;
 }) {
   const [stepIdx, setStepIdx] = useState(0);
   const [done, setDone] = useState(false);
@@ -288,7 +359,7 @@ function PracticeSessionOverlay({
       onClick={(e) => e.stopPropagation()}
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-12 pb-4">
+      <div className="flex items-center justify-between px-5 pt-16 pb-4">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#5A7AAA", opacity: 0.8 }}>
             {category.name}
@@ -328,7 +399,7 @@ function PracticeSessionOverlay({
               className="mt-10 px-10 py-3.5 rounded-full text-[15px] font-semibold text-white transition-all active:scale-95"
               style={{ background: "#5A7AAA" }}
             >
-              Done
+              {doneLabel || "Done"}
             </button>
           </>
         ) : (
@@ -440,7 +511,7 @@ function MicroPracticeOverlay({
     >
       {/* Header */}
       <div
-        className="flex items-start justify-between px-5 pt-12 pb-4"
+        className="flex items-start justify-between px-5 pt-16 pb-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div>
@@ -908,7 +979,7 @@ export default function IslandScreen({ onStartChat, suggestedPractice, userId }:
     >
       {/* Scrollable content */}
       <div className="h-full overflow-y-auto flex flex-col">
-        <div className="flex-1 flex flex-col px-5 pt-14 pb-6">
+        <div className="flex-1 flex flex-col px-5 pt-16 pb-6">
 
           {/* ── Header ── */}
           <div className="flex items-start gap-3 mb-4 animate-fade-in">

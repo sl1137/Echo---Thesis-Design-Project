@@ -2,6 +2,19 @@
 
 import { useState, useEffect } from "react";
 
+// ─── Crisis detection (shared with ChatScreen) ─────────────────────
+const CRISIS_KEYWORDS = [
+  "suicide", "kill myself", "end my life", "self-harm", "self harm",
+  "hurt myself", "cut myself", "don't want to live", "want to die",
+  "take my life", "no reason to live", "better off dead",
+  "自杀", "自残", "伤害自己", "割腕", "不想活", "想死", "结束生命", "了结自己",
+  "活不下去", "不想活了",
+];
+function detectCrisis(text: string): boolean {
+  const lower = text.toLowerCase();
+  return CRISIS_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+}
+
 // ─── Types ───────────────────────────────────────────────────────────
 
 interface BottleReplyItem {
@@ -189,7 +202,7 @@ function RepliesScreen({
   return (
     <div className="absolute inset-0 flex flex-col animate-fade-in" style={{ background: PAGE_BG, zIndex: 50 }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-12 pb-6 flex-shrink-0">
+      <div className="flex items-center gap-3 px-5 pt-16 pb-6 flex-shrink-0">
         <button
           onClick={onBack}
           className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -309,7 +322,7 @@ function DriftProfileScreen({ onBack, userId }: { onBack: () => void; userId?: s
   return (
     <div className="absolute inset-0 flex flex-col animate-fade-in" style={{ background: PAGE_BG, zIndex: 50 }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-12 pb-6 flex-shrink-0">
+      <div className="flex items-center gap-3 px-5 pt-16 pb-6 flex-shrink-0">
         <button
           onClick={onBack}
           className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -447,6 +460,9 @@ function DriftBottleScreen({
   const [feelingOtherVal, setFeelingOtherVal] = useState("");
   const [topicOtherVal, setTopicOtherVal] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [crisisWarning, setCrisisWarning] = useState(false);
+  const [rewriteSuggestion, setRewriteSuggestion] = useState("");
+  const [loadingRewrite, setLoadingRewrite] = useState(false);
 
   function toggle(list: string[], setList: (v: string[]) => void, tag: string) {
     setList(list.includes(tag) ? list.filter((t) => t !== tag) : [...list, tag]);
@@ -467,6 +483,27 @@ function DriftBottleScreen({
 
   async function handleDrift() {
     if (!content.trim() || submitting) return;
+    if (detectCrisis(content)) {
+      setCrisisWarning(true);
+      // Fetch AI rewrite suggestion
+      setLoadingRewrite(true);
+      setRewriteSuggestion("");
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `[DRIFT_REWRITE] ${content.trim()}`,
+            conversation: [],
+          }),
+        });
+        const data = await res.json();
+        const suggestion = data.bubbles?.[0] || "";
+        setRewriteSuggestion(suggestion);
+      } catch { /* ignore */ }
+      setLoadingRewrite(false);
+      return;
+    }
     setSubmitting(true);
     const now = new Date();
     const entry: BottleEntry = {
@@ -499,7 +536,7 @@ function DriftBottleScreen({
   return (
     <div className="absolute inset-0 flex flex-col animate-fade-in" style={{ background: PAGE_BG, zIndex: 50 }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-12 pb-2 flex-shrink-0">
+      <div className="flex items-center gap-3 px-5 pt-16 pb-2 flex-shrink-0">
         <button
           onClick={onBack}
           className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -523,7 +560,7 @@ function DriftBottleScreen({
           <p className="text-[13px] font-semibold mb-3" style={{ color: "#4A5A6A" }}>Your bottle</p>
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => { setContent(e.target.value); if (crisisWarning) setCrisisWarning(false); }}
             placeholder="You don't need to explain everything. Just leave the part that feels heaviest."
             rows={4}
             className="w-full resize-none outline-none text-[14px] leading-relaxed p-3"
@@ -639,6 +676,68 @@ function DriftBottleScreen({
           )}
         </div>
 
+        {/* Crisis warning */}
+        {crisisWarning && (
+          <div
+            className="mb-4 animate-fade-in"
+            style={{
+              background: "rgba(255,255,255,0.55)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              border: "1.5px dashed rgba(100,120,180,0.25)",
+              borderRadius: 20,
+              padding: 16,
+            }}
+          >
+            <p className="text-[13px] leading-relaxed mb-3" style={{ color: "#4A5A6A" }}>
+              It sounds like you might be going through something really difficult. A drift bottle reaches other students — for this kind of pain, please consider reaching out to someone who can truly help.
+            </p>
+            <div className="flex flex-col gap-1.5 mb-3">
+              {[
+                { name: "988 Suicide & Crisis Lifeline", detail: "Call or text 988 · 24/7 (US)", href: "https://988lifeline.org", accent: "#3A5A9A" },
+                { name: "Crisis Text Line", detail: "Text HOME to 741741", href: "https://www.crisistextline.org", accent: "#7A5AAA" },
+                { name: "Find a Helpline", detail: "International · 200+ countries", href: "https://findahelpline.com", accent: "#3A7A5A" },
+              ].map((r) => (
+                <a
+                  key={r.name}
+                  href={r.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all active:scale-[0.98]"
+                  style={{ background: `${r.accent}08`, textDecoration: "none" }}
+                >
+                  <div>
+                    <p className="text-[12.5px] font-semibold" style={{ color: r.accent }}>{r.name}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: "#8A9AAA" }}>{r.detail}</p>
+                  </div>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={r.accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                </a>
+              ))}
+            </div>
+            {/* AI rewrite suggestion */}
+            <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(100,120,180,0.12)" }}>
+              <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: "#9AA0B0" }}>
+                Try expressing it differently
+              </p>
+              {loadingRewrite ? (
+                <p className="text-[12.5px] italic" style={{ color: "#8A9AAA" }}>Thinking of a suggestion…</p>
+              ) : rewriteSuggestion ? (
+                <button
+                  onClick={() => { setContent(rewriteSuggestion); setCrisisWarning(false); }}
+                  className="w-full text-left px-3 py-2.5 rounded-xl transition-all active:scale-[0.98]"
+                  style={{ background: "rgba(90,122,170,0.08)", color: "#3A5A7A", fontSize: 13, lineHeight: 1.5 }}
+                >
+                  "{rewriteSuggestion}" <span className="text-[11px] ml-1" style={{ color: "#7A9AAA" }}>← tap to use</span>
+                </button>
+              ) : null}
+            </div>
+          </div>
+        )}
+
         {/* Let it drift */}
         <button
           onClick={handleDrift}
@@ -714,7 +813,7 @@ function BottleDetailScreen({ bottle, onBack }: { bottle: BottleEntry; onBack: (
   return (
     <div className="absolute inset-0 flex flex-col animate-fade-in" style={{ background: PAGE_BG, zIndex: 50 }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-12 pb-4 flex-shrink-0">
+      <div className="flex items-center gap-3 px-5 pt-16 pb-4 flex-shrink-0">
         <button
           onClick={onBack}
           className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -1101,7 +1200,7 @@ export default function DriftSeaScreen({ isGuest = true, userId }: { isGuest?: b
     <div className="absolute inset-0 flex flex-col" style={{ background: PAGE_BG }}>
       {/* Scrollable main content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-5 pt-14 pb-4">
+        <div className="px-5 pt-16 pb-4">
 
           {/* ── Header ── */}
           <div className="flex items-start justify-between mb-6">

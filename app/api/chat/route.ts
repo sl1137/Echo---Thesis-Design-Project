@@ -9,6 +9,22 @@ import { getMemoryContext } from "@/lib/memory";
  * Returns 1-3 short message bubbles per assistant turn for natural chat rhythm.
  */
 
+// ─── Crisis detection ────────────────────────────────────────────────
+const CRISIS_KEYWORDS = [
+  // English
+  "suicide", "kill myself", "end my life", "self-harm", "self harm",
+  "hurt myself", "cut myself", "don't want to live", "want to die",
+  "take my life", "no reason to live", "better off dead",
+  // Chinese
+  "自杀", "自残", "伤害自己", "割腕", "不想活", "想死", "结束生命", "了结自己",
+  "活不下去", "不想活了",
+];
+
+function detectCrisis(text: string): boolean {
+  const lower = text.toLowerCase();
+  return CRISIS_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+}
+
 /**
  * Detect the language of a text (simple heuristic)
  * Returns 'en' for English, 'zh' for Chinese
@@ -79,6 +95,8 @@ export async function POST(request: Request) {
 
     // Check if this is an opening message request
     const isOpening = message === "[OPENING]";
+    const isSafeConfirmation = message === "[USER_CONFIRMED_SAFE]";
+    const isDriftRewrite = (message || "").startsWith("[DRIFT_REWRITE]");
 
     // For opening message, use empty message to trigger greeting
     if (isOpening) {
@@ -131,10 +149,14 @@ export async function POST(request: Request) {
         content: msg.content,
       })),
       // Current user message (empty for opening)
-      // Add JSON format reminder to each user message
+      // For safe confirmation, replace with a contextual prompt
       {
         role: "user" as const,
-        content: (message || "hi") + jsonReminder,
+        content: isSafeConfirmation
+          ? "[System: The user just indicated they are safe right now after a moment of distress. Respond warmly and briefly — acknowledge their strength, gently remind them you're here whenever they want to talk, and that it's okay to feel however they feel. Keep it to 1 bubble, short and genuine. Don't be clinical.]" + jsonReminder
+          : isDriftRewrite
+          ? `[System: A user tried to send this as an anonymous drift bottle message to other students, but it contains crisis-level content. Suggest ONE alternative short message (1-2 sentences max) that expresses the same underlying emotion in a way that's safe to share with peers. Keep it genuine and raw — not clinical or sanitized. Just the rewritten message text, nothing else. Original: "${message.replace("[DRIFT_REWRITE] ", "")}"]` + jsonReminder
+          : (message || "hi") + jsonReminder,
       },
     ];
 
@@ -205,7 +227,8 @@ export async function POST(request: Request) {
       bubbles = ["…"];
     }
 
-    return NextResponse.json({ bubbles });
+    const crisis = (isSafeConfirmation || isDriftRewrite) ? false : detectCrisis(message || "");
+    return NextResponse.json({ bubbles, crisis });
   } catch (err) {
     console.error("Chat API error:", err);
     return NextResponse.json(

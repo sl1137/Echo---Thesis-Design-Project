@@ -3,11 +3,234 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRealtimeVoice, VoiceStatus } from "../hooks/useRealtimeVoice";
 import type { CardData, ChatMessage as Message, SessionRecord } from "../page";
+import { PracticeSessionOverlay, CATEGORIES } from "./IslandScreen";
 
 type ChatMode = "text" | "voice-input" | "voice-full";
 
 const PAGE_BG = "radial-gradient(ellipse at 50% 12%, #dde5ff 0%, #e9ecfc 45%, #eeeaf8 100%)";
 const VOICE_BG_IMAGE = "url('/voice-bg.png')";
+
+// ─── Crisis detection (mirrors server-side list) ──────────────────────
+const CRISIS_KEYWORDS = [
+  "suicide", "kill myself", "end my life", "self-harm", "self harm",
+  "hurt myself", "cut myself", "don't want to live", "want to die",
+  "take my life", "no reason to live", "better off dead",
+  "自杀", "自残", "伤害自己", "割腕", "不想活", "想死", "结束生命", "了结自己",
+  "活不下去", "不想活了",
+];
+function detectCrisis(text: string): boolean {
+  const lower = text.toLowerCase();
+  return CRISIS_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+}
+
+// ─── Inline card shared style ─────────────────────────────────────────
+const INLINE_CARD_STYLE: React.CSSProperties = {
+  background: "rgba(255,255,255,0.55)",
+  backdropFilter: "blur(16px)",
+  WebkitBackdropFilter: "blur(16px)",
+  border: "1.5px dashed rgba(100,120,180,0.25)",
+  borderRadius: 20,
+  padding: "16px",
+};
+
+const LINK_ICON = (accent: string) => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+    <polyline points="15 3 21 3 21 9"/>
+    <line x1="10" y1="14" x2="21" y2="3"/>
+  </svg>
+);
+
+// ─── Crisis Inline Card (urgent resources) ────────────────────────────
+function CrisisInlineCard({ onSafe }: { onSafe: () => void }) {
+  const resources = [
+    { name: "988 Suicide & Crisis Lifeline", detail: "Call or text 988 · 24/7 (US)", href: "https://988lifeline.org", accent: "#3A5A9A" },
+    { name: "Crisis Text Line", detail: "Text HOME to 741741", href: "https://www.crisistextline.org", accent: "#7A5AAA" },
+    { name: "Find a Helpline", detail: "International · 200+ countries", href: "https://findahelpline.com", accent: "#3A7A5A" },
+  ];
+
+  return (
+    <div className="px-4 py-1.5 animate-fade-in flex-shrink-0">
+      <div style={INLINE_CARD_STYLE}>
+        <p className="text-[13px] leading-relaxed mb-3" style={{ color: "#4A5A6A" }}>
+          If you're having thoughts of harming yourself or don't feel safe right now, please reach out to someone who can truly help.
+        </p>
+        <div className="flex flex-col gap-1.5 mb-3">
+          {resources.map((r) => (
+            <a
+              key={r.name}
+              href={r.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all active:scale-[0.98]"
+              style={{ background: `${r.accent}08`, textDecoration: "none" }}
+            >
+              <div>
+                <p className="text-[12.5px] font-semibold" style={{ color: r.accent }}>{r.name}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: "#8A9AAA" }}>{r.detail}</p>
+              </div>
+              {LINK_ICON(r.accent)}
+            </a>
+          ))}
+        </div>
+        <button
+          onClick={onSafe}
+          className="w-full py-2.5 rounded-xl text-[13px] font-semibold transition-all active:scale-[0.98]"
+          style={{ background: "rgba(90,106,138,0.08)", color: "#5A6A8A", border: "none", cursor: "pointer" }}
+        >
+          I'm safe right now
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Ongoing Support Card (therapist resources) ───────────────────────
+function OngoingSupportCard() {
+  const resources = [
+    { name: "Psychology Today", detail: "Find a therapist near you", href: "https://www.psychologytoday.com/us/therapists", accent: "#C05A20" },
+    { name: "Open Path Collective", detail: "Affordable therapy · $30–$80/session", href: "https://openpathcollective.org", accent: "#3A7A5A" },
+    { name: "BetterHelp", detail: "Online therapy — text, voice, or video", href: "https://www.betterhelp.com", accent: "#3A5A9A" },
+    { name: "Talkspace", detail: "Online therapy with licensed therapists", href: "https://www.talkspace.com", accent: "#7A5AAA" },
+  ];
+
+  return (
+    <div className="px-4 py-1.5 animate-fade-in flex-shrink-0">
+      <div style={INLINE_CARD_STYLE}>
+        <p className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: "#9AA0B0" }}>
+          Find ongoing support
+        </p>
+        <div className="flex flex-col gap-1.5">
+          {resources.map((r) => (
+            <a
+              key={r.name}
+              href={r.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all active:scale-[0.98]"
+              style={{ background: `${r.accent}08`, textDecoration: "none" }}
+            >
+              <div>
+                <p className="text-[12.5px] font-semibold" style={{ color: r.accent }}>{r.name}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: "#8A9AAA" }}>{r.detail}</p>
+              </div>
+              {LINK_ICON(r.accent)}
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Practice Nudge (in-chat suggestion) ──────────────────────────────
+const PRACTICE_NAMES: Record<string, { name: string; category: string; color: string }> = {
+  slow_exhale: { name: "Slow Exhale", category: "Stabilize", color: "#3A5A9A" },
+  pause_with_me: { name: "Pause with Me", category: "Stabilize", color: "#3A5A9A" },
+  come_back_to_room: { name: "Come Back to the Room", category: "Stabilize", color: "#3A5A9A" },
+  reset_my_body: { name: "Reset My Body", category: "Stabilize", color: "#3A5A9A" },
+  name_whats_here: { name: "Name What's Here", category: "Clarify", color: "#7A6A2A" },
+  catch_the_thought: { name: "Catch the Thought", category: "Clarify", color: "#7A6A2A" },
+  check_the_facts: { name: "Check the Facts", category: "Clarify", color: "#7A6A2A" },
+  why_hitting_hard: { name: "Why Is This Hitting So Hard?", category: "Clarify", color: "#7A6A2A" },
+  one_tiny_next_step: { name: "One Tiny Next Step", category: "Reframe & Act", color: "#8A4A5A" },
+  a_fairer_thought: { name: "A Fairer Thought", category: "Reframe & Act", color: "#8A4A5A" },
+  say_it_clearly: { name: "Say It Clearly", category: "Reframe & Act", color: "#8A4A5A" },
+  what_would_help_future_me: { name: "What Would Help Future Me?", category: "Reframe & Act", color: "#8A4A5A" },
+};
+
+function PracticeNudge({
+  practiceId,
+  onAccept,
+  onLater,
+}: {
+  practiceId: string;
+  onAccept: () => void;
+  onLater: () => void;
+}) {
+  const info = PRACTICE_NAMES[practiceId] || { name: practiceId, category: "", color: "#3A5A9A" };
+
+  return (
+    <div className="px-4 py-2 animate-fade-in">
+      <div
+        style={{
+          background: "rgba(255,255,255,0.88)",
+          borderRadius: 20,
+          padding: "14px 16px",
+          boxShadow: "0 2px 16px rgba(80,70,160,0.10)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          border: `1px solid ${info.color}20`,
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-2.5 mb-2">
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 9,
+              background: `${info.color}12`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={info.color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: info.color, letterSpacing: 0.3 }}>
+              Echo suggests a practice
+            </p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: "#1A2A3A", lineHeight: 1.2 }}>
+              {info.name}
+            </p>
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-2 mt-2.5">
+          <button
+            onClick={onAccept}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-all active:scale-95"
+            style={{
+              background: info.color,
+              borderRadius: 12,
+              color: "white",
+              fontSize: 13,
+              fontWeight: 600,
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Try it now
+          </button>
+          <button
+            onClick={onLater}
+            className="flex-1 flex items-center justify-center py-2 transition-all active:scale-95"
+            style={{
+              background: `${info.color}10`,
+              borderRadius: 12,
+              color: info.color,
+              fontSize: 13,
+              fontWeight: 600,
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Later
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Orb Image ────────────────────────────────────────────────────────
 function Orb({
@@ -59,7 +282,7 @@ function ChatHeader({
   isEnding: boolean;
 }) {
   return (
-    <header className="relative flex items-center justify-between px-4 pt-12 pb-3 flex-shrink-0">
+    <header className="relative flex items-center justify-between px-4 pt-16 pb-3 flex-shrink-0">
       {/* Back */}
       <button
         onClick={onBack}
@@ -169,7 +392,7 @@ function ValidationCardOverlay({
   return (
     <div className="absolute inset-0 z-50 flex flex-col animate-fade-in" style={{ background: BG }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-6 pb-3 flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 pt-16 pb-3 flex-shrink-0">
         <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-90" style={{ background: "rgba(255,255,255,0.55)" }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2" strokeLinecap="round">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -273,12 +496,36 @@ function ChatBubble({ message }: { message: Message }) {
 }
 
 // ─── Chat Message List ────────────────────────────────────────────────
-function ChatMessages({ messages }: { messages: Message[] }) {
+const ONGOING_SUPPORT_MARKER = "[ONGOING_SUPPORT_CARD]";
+const CRISIS_CARD_MARKER = "[CRISIS_CARD]";
+
+function ChatMessages({
+  messages,
+  onCrisisSafe,
+  children,
+}: {
+  messages: Message[];
+  onCrisisSafe?: () => void;
+  children?: React.ReactNode;
+}) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, children]);
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-      {messages.map((msg) => <ChatBubble key={msg.id} message={msg} />)}
+    <div className="flex-1 overflow-y-auto py-4 space-y-3">
+      {messages.map((msg) => {
+        if (msg.text === ONGOING_SUPPORT_MARKER) {
+          return <OngoingSupportCard key={msg.id} />;
+        }
+        if (msg.text === CRISIS_CARD_MARKER && onCrisisSafe) {
+          return <CrisisInlineCard key={msg.id} onSafe={onCrisisSafe} />;
+        }
+        return (
+          <div key={msg.id} className="px-4">
+            <ChatBubble message={msg} />
+          </div>
+        );
+      })}
+      {children}
       <div ref={bottomRef} />
     </div>
   );
@@ -295,27 +542,42 @@ function TextInputBar({
   onSwitchToVoiceFull: () => void;
   isLoading: boolean;
 }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Reset textarea height when value is cleared (after send)
+  useEffect(() => {
+    if (!value && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  }, [value]);
+
   return (
     <div className="px-4 pb-8 pt-2 flex-shrink-0">
       <div
-        className="flex items-center gap-2 px-4"
+        className="flex items-end gap-2 px-4 py-2"
         style={{
           background: "rgba(255,255,255,0.82)",
           borderRadius: 24,
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
           boxShadow: "0 2px 16px rgba(100,120,220,0.10)",
-          height: 52,
+          minHeight: 52,
         }}
       >
-        <input
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            onChange(e.target.value);
+            // Auto-resize
+            e.target.style.height = "auto";
+            e.target.style.height = e.target.scrollHeight + "px";
+          }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && value.trim()) { e.preventDefault(); onSend(); } }}
           placeholder="Message..."
-          className="flex-1 bg-transparent text-[15px] outline-none"
-          style={{ color: "#1a1a3e" }}
+          rows={1}
+          className="flex-1 bg-transparent text-[15px] outline-none resize-none"
+          style={{ color: "#1a1a3e", lineHeight: "36px", maxHeight: 120 }}
         />
         {/* Mic → voice-input */}
         <button
@@ -613,6 +875,9 @@ export default function ChatScreen({
   const lastEchoTextRef = useRef("");
   const [streamingText, setStreamingText] = useState("");
   const [prevEchoText, setPrevEchoText] = useState("");
+  const crisisShownRef = useRef(false); // prevent repeat triggers in same session
+  const [practiceNudge, setPracticeNudge] = useState<{ practiceId: string; categoryId: string } | null>(null);
+  const [activePractice, setActivePractice] = useState<{ practiceId: string; categoryId: string } | null>(null);
 
   // Stable user ID — prefer real auth userId, fall back to localStorage
   const userIdRef = useRef<string>(authUserId ?? "");
@@ -633,6 +898,10 @@ export default function ChatScreen({
 
   // Voice-full hook
   const handleTranscript = useCallback((role: "user" | "echo", text: string) => {
+    if (role === "user" && detectCrisis(text) && !crisisShownRef.current) {
+      crisisShownRef.current = true;
+      setMessages((prev) => [...prev, { id: `crisis-${Date.now()}`, role: "echo", text: CRISIS_CARD_MARKER }]);
+    }
     if (role === "echo") {
       setLastEchoText(text);
       lastEchoTextRef.current = text;
@@ -698,25 +967,32 @@ export default function ChatScreen({
     });
     if (!res.ok) throw new Error("Chat error");
     const data = await res.json();
+    if (data.crisis && !crisisShownRef.current) {
+      crisisShownRef.current = true;
+      setMessages((prev) => [...prev, { id: `crisis-${Date.now()}`, role: "echo", text: CRISIS_CARD_MARKER }]);
+      return []; // Suppress Echo's normal response — wait for "I'm safe"
+    }
     return data.bubbles?.filter((b: string) => b?.trim()) || [data.response || "I'm here."];
   }
 
   function maybeSuggestPractice(echoText: string) {
     if (suggestedRef.current || !onSuggestPractice) return;
     const t = echoText.toLowerCase();
-    let match = { practiceId: "slow_exhale", categoryId: "stabilize" };
+    let match: { practiceId: string; categoryId: string } | null = null;
     if (t.includes("breath") || t.includes("anxious") || t.includes("tense"))
       match = { practiceId: "slow_exhale", categoryId: "stabilize" };
     else if (t.includes("spiral") || t.includes("pause") || t.includes("overwhelm"))
       match = { practiceId: "pause_with_me", categoryId: "stabilize" };
-    else if (t.includes("feel") || t.includes("emotion") || t.includes("name"))
+    else if (t.includes("feel") || t.includes("emotion"))
       match = { practiceId: "name_whats_here", categoryId: "clarify" };
     else if (t.includes("step") || t.includes("stuck") || t.includes("task"))
       match = { practiceId: "one_tiny_next_step", categoryId: "reframe" };
     else if (t.includes("thought") || t.includes("reaction") || t.includes("automatic"))
       match = { practiceId: "catch_the_thought", categoryId: "clarify" };
+    if (!match) return; // No keyword match — don't suggest
     suggestedRef.current = true;
     onSuggestPractice(match);
+    setPracticeNudge(match);
   }
 
   function handleSend() {
@@ -850,7 +1126,37 @@ export default function ChatScreen({
 
       {mode === "text" && (
         <>
-          <ChatMessages messages={messages} />
+          <ChatMessages
+            messages={messages}
+            onCrisisSafe={() => {
+              // Remove crisis card marker, send safe confirmation to API
+              setMessages((prev) => prev.filter((m) => m.text !== CRISIS_CARD_MARKER));
+              sendToEcho("[USER_CONFIRMED_SAFE]").then((bubbles) => {
+                const ts = Date.now();
+                bubbles.forEach((text, i) => setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text }]));
+                // Insert ongoing support card after Echo's response
+                setMessages((prev) => [...prev, { id: `ongoing-${Date.now()}`, role: "echo", text: ONGOING_SUPPORT_MARKER }]);
+              });
+            }}
+          >
+            {practiceNudge && (
+              <PracticeNudge
+                practiceId={practiceNudge.practiceId}
+                onAccept={() => {
+                  setActivePractice(practiceNudge);
+                  setPracticeNudge(null);
+                }}
+                onLater={() => {
+                  setPracticeNudge(null);
+                  setMessages((prev) => [...prev, {
+                    id: `${Date.now()}`,
+                    role: "echo" as const,
+                    text: "No worries — you can find this practice on your Island anytime. 🌊",
+                  }]);
+                }}
+              />
+            )}
+          </ChatMessages>
           <TextInputBar
             value={input}
             onChange={setInput}
@@ -883,6 +1189,20 @@ export default function ChatScreen({
           prevEchoText={prevEchoText}
         />
       )}
+
+      {activePractice && (() => {
+        const cat = CATEGORIES.find((c) => c.id === activePractice.categoryId);
+        const practice = cat?.practices.find((p) => p.id === activePractice.practiceId);
+        if (!cat || !practice) return null;
+        return (
+          <PracticeSessionOverlay
+            practice={practice}
+            category={cat}
+            onClose={() => setActivePractice(null)}
+            doneLabel="Continue to chat"
+          />
+        );
+      })()}
     </div>
   );
 }

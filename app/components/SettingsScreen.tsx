@@ -156,7 +156,7 @@ export default function SettingsScreen({ onBack, onLogout }: { onBack: () => voi
       }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-6">
+      <div className="flex items-center gap-3 px-5 pt-16 pb-6">
         <button
           onClick={onBack}
           className="w-9 h-9 flex items-center justify-center transition-all active:scale-90"
