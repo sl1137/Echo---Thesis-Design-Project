@@ -467,7 +467,10 @@ function ValidationCardOverlay({
 function ChatBubble({ message }: { message: Message }) {
   const isEcho = message.role === "echo";
   return (
-    <div className={`flex items-end ${isEcho ? "justify-start" : "justify-end"}`}>
+    <div
+      className={`flex items-end ${isEcho ? "justify-start" : "justify-end"}`}
+      style={{ animation: "bubbleFadeIn 0.4s ease forwards" }}
+    >
       {isEcho && <div style={{ marginRight: 4 }}><Orb size={48} /></div>}
       <div
         style={{
@@ -937,7 +940,21 @@ export default function ChatScreen({
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "[OPENING]", conversation: [], userId: userIdRef.current }),
+      body: JSON.stringify({
+        message: "[OPENING]",
+        conversation: [],
+        userId: userIdRef.current,
+        guestRecentContext: (() => {
+          try {
+            const saved = localStorage.getItem("echo_guest_sessions");
+            if (!saved) return null;
+            const sessions = JSON.parse(saved);
+            const last = sessions[0];
+            if (!last?.card) return null;
+            return `Recent session: ${last.card.summary || ""} Topics: ${(last.card.emotion_tags || []).join(", ")}`;
+          } catch { return null; }
+        })(),
+      }),
     })
       .then((r) => r.json())
       .then((data) => {
@@ -979,15 +996,20 @@ export default function ChatScreen({
     if (suggestedRef.current || !onSuggestPractice) return;
     const t = echoText.toLowerCase();
     let match: { practiceId: string; categoryId: string } | null = null;
-    if (t.includes("breath") || t.includes("anxious") || t.includes("tense"))
+    if (t.includes("breath") || t.includes("anxious") || t.includes("tense") ||
+        t.includes("呼吸") || t.includes("焦虑") || t.includes("紧张") || t.includes("喘不过"))
       match = { practiceId: "slow_exhale", categoryId: "stabilize" };
-    else if (t.includes("spiral") || t.includes("pause") || t.includes("overwhelm"))
+    else if (t.includes("spiral") || t.includes("pause") || t.includes("overwhelm") ||
+        t.includes("停一下") || t.includes("喘口气") || t.includes("透不过气") || t.includes("崩溃") || t.includes("承受"))
       match = { practiceId: "pause_with_me", categoryId: "stabilize" };
-    else if (t.includes("feel") || t.includes("emotion"))
+    else if (t.includes("feel") || t.includes("emotion") ||
+        t.includes("感受") || t.includes("情绪") || t.includes("说不清") || t.includes("说不出"))
       match = { practiceId: "name_whats_here", categoryId: "clarify" };
-    else if (t.includes("step") || t.includes("stuck") || t.includes("task"))
+    else if (t.includes("step") || t.includes("stuck") || t.includes("task") ||
+        t.includes("不知道怎么") || t.includes("卡住") || t.includes("迈出") || t.includes("第一步"))
       match = { practiceId: "one_tiny_next_step", categoryId: "reframe" };
-    else if (t.includes("thought") || t.includes("reaction") || t.includes("automatic"))
+    else if (t.includes("thought") || t.includes("reaction") || t.includes("automatic") ||
+        t.includes("想法") || t.includes("脑子里") || t.includes("自动") || t.includes("反应"))
       match = { practiceId: "catch_the_thought", categoryId: "clarify" };
     if (!match) return; // No keyword match — don't suggest
     suggestedRef.current = true;
@@ -1002,9 +1024,12 @@ export default function ChatScreen({
     setInput("");
     setIsLoading(true);
     sendToEcho(userMsg.text)
-      .then((bubbles) => {
+      .then(async (bubbles) => {
         const ts = Date.now();
-        bubbles.forEach((text, i) => setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text }]));
+        for (let i = 0; i < bubbles.length; i++) {
+          if (i > 0) await new Promise((r) => setTimeout(r, 900));
+          setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text: bubbles[i] }]);
+        }
         maybeSuggestPractice(bubbles[bubbles.length - 1] ?? "");
       })
       .catch(() => setMessages((prev) => [...prev, { id: `${Date.now()}`, role: "echo", text: "I'm here." }]))

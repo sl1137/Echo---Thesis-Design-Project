@@ -679,22 +679,29 @@ function AffirmationCard() {
   const { title, body } = AFFIRMATIONS[idx];
 
   return (
-    <button
-      onClick={next}
-      className="w-full text-left mb-4 animate-fade-in delay-200 transition-all active:scale-[0.99] overflow-hidden relative"
+    <div
+      className="w-full mb-4 animate-fade-in delay-200"
       style={{
         borderRadius: 18,
-        backgroundImage: "url('/validation-card-bg.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        overflow: "hidden",
+        transform: "translateZ(0)",
         boxShadow: "0 2px 12px rgba(80,70,160,0.10)",
         height: 148,
         flexShrink: 0,
+      }}
+    >
+    <button
+      onClick={next}
+      className="w-full h-full text-left transition-all active:scale-[0.99] relative"
+      style={{
+        backgroundImage: "url('/affirmation-card-bg.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
         padding: 0,
       }}
     >
       {/* Overlay for text legibility */}
-      <div style={{ position: "absolute", inset: 0, borderRadius: 18, background: "rgba(255,255,255,0.52)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.52)" }} />
 
       {/* Content */}
       <div style={{ position: "relative", zIndex: 1, padding: "14px 16px" }}>
@@ -741,6 +748,7 @@ function AffirmationCard() {
       </div>
       </div>
     </button>
+    </div>
   );
 }
 
@@ -1020,7 +1028,9 @@ export default function IslandScreen({ onStartChat, suggestedPractice, userId }:
             onClick={onStartChat}
             className="w-full flex items-center justify-between px-5 py-3.5 mb-3 transition-all active:scale-[0.98] animate-fade-in delay-100"
             style={{
-              background: "rgba(255,255,255,0.72)",
+              backgroundImage: "url('/chat-button-bg.png')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
               borderRadius: 18,
               boxShadow: "0 2px 12px rgba(80,70,160,0.07)",
               color: "#1A1A2A",
