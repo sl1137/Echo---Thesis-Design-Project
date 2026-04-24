@@ -441,9 +441,21 @@ export function PracticeSessionOverlay({
                     }}
                   />
                 </div>
-                <p className="text-[12px] mt-2 text-center" style={{ color: "#5A7AAA", opacity: 0.7 }}>
-                  {Math.max(currentStep.duration - elapsed, 0)}s
-                </p>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <p className="text-[12px]" style={{ color: "#5A7AAA", opacity: 0.7 }}>
+                    {Math.max(currentStep.duration - elapsed, 0)}s
+                  </p>
+                  <button
+                    onClick={() => setElapsed(0)}
+                    className="flex items-center justify-center transition-all active:scale-90"
+                    style={{ opacity: 0.5 }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A7AAA" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             )}
           </>
