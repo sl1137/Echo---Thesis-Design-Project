@@ -369,10 +369,9 @@ export function PracticeSessionOverlay({
       </div>
 
       {/* Body */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+      <div className="flex-1 flex flex-col items-center px-8 text-center">
         {done ? (
-          <>
-            {/* Checkmark */}
+          <div className="flex-1 flex flex-col items-center justify-center w-full">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6"
               style={{ background: "rgba(90,122,170,0.15)" }}>
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#5A7AAA" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -392,31 +391,31 @@ export function PracticeSessionOverlay({
             >
               {doneLabel || "Done"}
             </button>
-          </>
+          </div>
         ) : (
-          <>
-            {/* Step progress dots */}
+          <div className="w-full flex flex-col items-center pt-10">
+            {/* Step progress dots — fixed position, not affected by content below */}
             <div className="flex flex-col items-center gap-2 mb-8">
-            <div className="flex items-center justify-center gap-[6px]">
-              {practice.steps.map((_, i) => {
-                const active = i <= stepIdx;
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      width: active ? 8 : 6,
-                      height: active ? 8 : 6,
-                      borderRadius: 999,
-                      background: active ? "#5A7AAA" : "rgba(90,122,170,0.25)",
-                      transition: "all 0.3s ease",
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <p className="text-[11px] font-semibold" style={{ color: "#5A7AAA", opacity: 0.6 }}>
-              Step {stepIdx + 1} of {practice.steps.length}
-            </p>
+              <div className="flex items-center justify-center gap-[6px]">
+                {practice.steps.map((_, i) => {
+                  const active = i <= stepIdx;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        width: active ? 8 : 6,
+                        height: active ? 8 : 6,
+                        borderRadius: 999,
+                        background: active ? "#5A7AAA" : "rgba(90,122,170,0.25)",
+                        transition: "all 0.3s ease",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <p className="text-[11px] font-semibold" style={{ color: "#5A7AAA", opacity: 0.6 }}>
+                Step {stepIdx + 1} of {practice.steps.length}
+              </p>
             </div>
             {/* Instruction */}
             <p className="text-[22px] font-bold leading-snug mb-4" style={{ color: "#1A2A3A" }}>
@@ -458,7 +457,7 @@ export function PracticeSessionOverlay({
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 
