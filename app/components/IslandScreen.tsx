@@ -396,7 +396,8 @@ export function PracticeSessionOverlay({
         ) : (
           <>
             {/* Step progress dots */}
-            <div className="flex items-center justify-center gap-[6px] mb-8">
+            <div className="flex flex-col items-center gap-2 mb-8">
+            <div className="flex items-center justify-center gap-[6px]">
               {practice.steps.map((_, i) => {
                 const active = i <= stepIdx;
                 return (
@@ -412,6 +413,10 @@ export function PracticeSessionOverlay({
                   />
                 );
               })}
+            </div>
+            <p className="text-[11px] font-semibold" style={{ color: "#5A7AAA", opacity: 0.6 }}>
+              Step {stepIdx + 1} of {practice.steps.length}
+            </p>
             </div>
             {/* Instruction */}
             <p className="text-[22px] font-bold leading-snug mb-4" style={{ color: "#1A2A3A" }}>
