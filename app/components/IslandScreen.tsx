@@ -393,30 +393,34 @@ export function PracticeSessionOverlay({
             </button>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center w-full">
-            {/* 进度点 + step，紧靠在 instruction 上方 */}
-            <div className="flex flex-col items-center gap-2 mb-6">
-              <div className="flex items-center justify-center gap-[6px]">
-                {practice.steps.map((_, i) => {
-                  const active = i <= stepIdx;
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        width: active ? 8 : 6,
-                        height: active ? 8 : 6,
-                        borderRadius: 999,
-                        background: active ? "#5A7AAA" : "rgba(90,122,170,0.25)",
-                        transition: "all 0.3s ease",
-                      }}
-                    />
-                  );
-                })}
+          <>
+            {/* 上段：占 2/5，dots 贴底部，位置按屏幕比例固定 */}
+            <div className="flex flex-col items-center justify-end pb-5" style={{ flexGrow: 2, flexShrink: 0, flexBasis: 0 }}>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center justify-center gap-[6px]">
+                  {practice.steps.map((_, i) => {
+                    const active = i <= stepIdx;
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          width: active ? 8 : 6,
+                          height: active ? 8 : 6,
+                          borderRadius: 999,
+                          background: active ? "#5A7AAA" : "rgba(90,122,170,0.25)",
+                          transition: "all 0.3s ease",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] font-semibold" style={{ color: "#5A7AAA", opacity: 0.6 }}>
+                  Step {stepIdx + 1} of {practice.steps.length}
+                </p>
               </div>
-              <p className="text-[11px] font-semibold" style={{ color: "#5A7AAA", opacity: 0.6 }}>
-                Step {stepIdx + 1} of {practice.steps.length}
-              </p>
             </div>
+            {/* 下段：占 3/5，instruction 从顶部开始 */}
+            <div className="flex flex-col items-center w-full pt-5" style={{ flexGrow: 3, flexShrink: 0, flexBasis: 0 }}>
             <p className="text-[22px] font-bold leading-snug mb-4" style={{ color: "#1A2A3A" }}>
               {currentStep.instruction}
             </p>
@@ -454,7 +458,8 @@ export function PracticeSessionOverlay({
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          </>
         )}
       </div>
 
