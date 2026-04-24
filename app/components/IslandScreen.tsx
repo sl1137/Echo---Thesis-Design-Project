@@ -395,7 +395,7 @@ export function PracticeSessionOverlay({
         ) : (
           <div className="w-full flex flex-col items-center flex-1">
             {/* 层1：顶部固定 */}
-            <div className="flex flex-col items-center gap-2 pt-16 flex-shrink-0">
+            <div className="flex flex-col items-center gap-2 pt-40 flex-shrink-0">
               <div className="flex items-center justify-center gap-[6px]">
                 {practice.steps.map((_, i) => {
                   const active = i <= stepIdx;
