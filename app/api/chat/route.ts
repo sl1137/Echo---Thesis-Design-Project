@@ -122,8 +122,8 @@ export async function POST(request: Request) {
     const effectiveContext = memoryContext || (guestRecentContext ? `## What I remember about you:\n\n**Recently:**\n- ${guestRecentContext}` : "");
     const memorySection = effectiveContext ? `\n\n${effectiveContext}` : "";
 
-    // Determine language for system prompt JSON reminder
-    const systemLang = isOpening ? 'zh' : detectLanguage(message || "");
+    // Determine language for system prompt JSON reminder (opening defaults to English)
+    const systemLang = isOpening ? 'en' : detectLanguage(message || "");
     const jsonSystemReminder = systemLang === 'en'
       ? "\n\nPlease respond in JSON format with a 'bubbles' array."
       : "\n\n请用 JSON 格式返回你的回复，包含一个 'bubbles' 数组。";
@@ -133,8 +133,8 @@ export async function POST(request: Request) {
     // Reduce conversation history to 6 messages to avoid token issues
     const historySlice = isOpening ? 0 : 6;
 
-    // Determine language for JSON format reminder
-    const userLang = isOpening ? 'zh' : detectLanguage(message || "");
+    // Determine language for JSON format reminder (opening defaults to English)
+    const userLang = isOpening ? 'en' : detectLanguage(message || "");
     const jsonReminder = userLang === 'en'
       ? "\n\nPlease respond in JSON format with a 'bubbles' array."
       : "\n\n请用 JSON 格式回复，包含 'bubbles' 数组。";
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
           : isDriftRewrite
           ? `[System: A user tried to send this as an anonymous drift bottle message to other students, but it contains crisis-level content. Suggest ONE alternative short message (1-2 sentences max) that expresses the same underlying emotion in a way that's safe to share with peers. Keep it genuine and raw — not clinical or sanitized. Just the rewritten message text, nothing else. Original: "${message.replace("[DRIFT_REWRITE] ", "")}"]` + jsonReminder
           : isOpening && effectiveContext
-          ? `[System: This user is starting a new conversation. You have memory of previous sessions (see above). Open with a warm, natural 1-2 bubble greeting that references one specific topic or situation from a recent session — like asking how their thesis is going, or what happened with something they mentioned. DO NOT assume the user was in a bad mood or distressed. DO NOT ask if they feel better or if things have improved emotionally. Only ask about the topic or situation itself, neutrally and naturally. Sound like a friend who remembers what you talked about, not a therapist checking on your emotional state. Keep it short and conversational. Use Chinese if their recent sessions were in Chinese, English otherwise.]` + jsonReminder
+          ? `[System: This user is starting a new conversation. You have memory of previous sessions (see above). Open with a warm, natural 1-2 bubble greeting that references one specific topic or situation from a recent session — like asking how their thesis is going, or what happened with something they mentioned. DO NOT assume the user was in a bad mood or distressed. DO NOT ask if they feel better or if things have improved emotionally. Only ask about the topic or situation itself, neutrally and naturally. Sound like a friend who remembers what you talked about, not a therapist checking on your emotional state. Keep it short and conversational. Always respond in English — only switch to Chinese if the user replies in Chinese first.]` + jsonReminder
           : (message || "hi") + jsonReminder,
       },
     ];

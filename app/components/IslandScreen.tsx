@@ -366,15 +366,23 @@ export function PracticeSessionOverlay({
           </p>
           <p className="text-[14px] font-semibold mt-0.5" style={{ color: "#1A2A3A" }}>{practice.name}</p>
         </div>
-        <button
-          onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
-          style={{ background: "rgba(90,122,170,0.12)" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A5A8A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          {practice.steps.map((_, i) => {
+            const active = done || i <= stepIdx;
+            return (
+              <div
+                key={i}
+                style={{
+                  width: active ? 7 : 5,
+                  height: active ? 7 : 5,
+                  borderRadius: 999,
+                  background: active ? "#5A7AAA" : "rgba(90,122,170,0.25)",
+                  transition: "all 0.3s ease",
+                }}
+              />
+            );
+          })}
+        </div>
       </div>
 
       {/* Body */}
