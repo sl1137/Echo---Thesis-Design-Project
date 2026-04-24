@@ -354,12 +354,21 @@ export function PracticeSessionOverlay({
 
   return (
     <div
-      className="fixed inset-0 flex flex-col animate-fade-in"
+      className="absolute inset-0 flex flex-col animate-fade-in"
       style={{ backgroundImage: "url('/practice-session-bg.png')", backgroundSize: "cover", backgroundPosition: "center", zIndex: 60 }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-16 pb-4">
+      <div className="flex items-center gap-3 px-5 pt-14 pb-4">
+        <button
+          onClick={onClose}
+          className="w-9 h-9 flex items-center justify-center rounded-full flex-shrink-0 transition-all active:scale-90"
+          style={{ background: "rgba(90,122,170,0.12)" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A5A8A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
         <div>
           <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#5A7AAA", opacity: 0.8 }}>
             {category.name}
@@ -528,7 +537,7 @@ function MicroPracticeOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col animate-fade-in"
+      className="absolute inset-0 z-50 flex flex-col animate-fade-in"
       style={{ background: "rgba(20,20,40,0.5)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
       onClick={onClose}
     >
