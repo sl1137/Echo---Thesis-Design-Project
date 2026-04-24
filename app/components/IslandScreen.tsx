@@ -393,9 +393,9 @@ export function PracticeSessionOverlay({
             </button>
           </div>
         ) : (
-          <div className="w-full flex flex-col items-center flex-1">
-            {/* 层1：顶部固定 */}
-            <div className="flex flex-col items-center gap-2 pt-40 flex-shrink-0">
+          <div className="flex-1 flex flex-col items-center justify-center w-full">
+            {/* 进度点 + step，紧靠在 instruction 上方 */}
+            <div className="flex flex-col items-center gap-2 mb-6">
               <div className="flex items-center justify-center gap-[6px]">
                 {practice.steps.map((_, i) => {
                   const active = i <= stepIdx;
@@ -417,46 +417,43 @@ export function PracticeSessionOverlay({
                 Step {stepIdx + 1} of {practice.steps.length}
               </p>
             </div>
-            {/* 层2：剩余空间居中 */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full">
-              <p className="text-[22px] font-bold leading-snug mb-4" style={{ color: "#1A2A3A" }}>
-                {currentStep.instruction}
+            <p className="text-[22px] font-bold leading-snug mb-4" style={{ color: "#1A2A3A" }}>
+              {currentStep.instruction}
+            </p>
+            {currentStep.hint && (
+              <p className="text-[13px] leading-relaxed" style={{ color: "#6A7A8A" }}>
+                {currentStep.hint}
               </p>
-              {currentStep.hint && (
-                <p className="text-[13px] leading-relaxed" style={{ color: "#6A7A8A" }}>
-                  {currentStep.hint}
-                </p>
-              )}
-              {hasDuration && currentStep.duration && (
-                <div className="w-full mt-8">
-                  <div className="w-full h-1.5 rounded-full" style={{ background: "rgba(90,122,170,0.18)" }}>
-                    <div
-                      className="h-1.5 rounded-full"
-                      style={{
-                        width: `${progress * 100}%`,
-                        background: "#5A7AAA",
-                        transition: "width 1s linear",
-                      }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-center gap-2 mt-2">
-                    <p className="text-[12px]" style={{ color: "#5A7AAA", opacity: 0.7 }}>
-                      {Math.max(currentStep.duration - elapsed, 0)}s
-                    </p>
-                    <button
-                      onClick={() => setElapsed(0)}
-                      className="flex items-center justify-center transition-all active:scale-90"
-                      style={{ opacity: 0.5 }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A7AAA" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <path d="M3 3v5h5" />
-                      </svg>
-                    </button>
-                  </div>
+            )}
+            {hasDuration && currentStep.duration && (
+              <div className="w-full mt-8">
+                <div className="w-full h-1.5 rounded-full" style={{ background: "rgba(90,122,170,0.18)" }}>
+                  <div
+                    className="h-1.5 rounded-full"
+                    style={{
+                      width: `${progress * 100}%`,
+                      background: "#5A7AAA",
+                      transition: "width 1s linear",
+                    }}
+                  />
                 </div>
-              )}
-            </div>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <p className="text-[12px]" style={{ color: "#5A7AAA", opacity: 0.7 }}>
+                    {Math.max(currentStep.duration - elapsed, 0)}s
+                  </p>
+                  <button
+                    onClick={() => setElapsed(0)}
+                    className="flex items-center justify-center transition-all active:scale-90"
+                    style={{ opacity: 0.5 }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A7AAA" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
