@@ -54,7 +54,6 @@ export default function EchoApp() {
   const [userId, setUserId] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [guestMode, setGuestMode] = useState(false);
-  const [practiceOpen, setPracticeOpen] = useState(false);
 
   // Check for existing Supabase session on mount (handles OAuth redirect return)
   useEffect(() => {
@@ -98,7 +97,6 @@ export default function EchoApp() {
                   suggestedPractice={suggestedPractice}
                   onDismissSuggestion={() => setSuggestedPractice(null)}
                   userId={guestMode ? undefined : (userId || undefined)}
-                  onPracticeActiveChange={setPracticeOpen}
                 />
               </div>
             )}
@@ -139,7 +137,7 @@ export default function EchoApp() {
         )}
       </div>
 
-      {!chatOpen && !settingsOpen && !practiceOpen && (
+      {!chatOpen && !settingsOpen && (
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
       )}
     </div>

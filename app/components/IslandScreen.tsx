@@ -354,7 +354,7 @@ export function PracticeSessionOverlay({
 
   return (
     <div
-      className="absolute inset-0 flex flex-col animate-fade-in"
+      className="fixed inset-0 flex flex-col animate-fade-in"
       style={{ backgroundImage: "url('/practice-session-bg.png')", backgroundSize: "cover", backgroundPosition: "center", zIndex: 60 }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -528,7 +528,7 @@ function MicroPracticeOverlay({
 
   return (
     <div
-      className="absolute inset-0 z-50 flex flex-col animate-fade-in"
+      className="fixed inset-0 z-50 flex flex-col animate-fade-in"
       style={{ background: "rgba(20,20,40,0.5)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
       onClick={onClose}
     >
@@ -965,10 +965,9 @@ interface IslandScreenProps {
   suggestedPractice?: { practiceId: string; categoryId: string } | null;
   onDismissSuggestion?: () => void;
   userId?: string;
-  onPracticeActiveChange?: (active: boolean) => void;
 }
 
-export default function IslandScreen({ onStartChat, suggestedPractice, userId, onPracticeActiveChange }: IslandScreenProps) {
+export default function IslandScreen({ onStartChat, suggestedPractice, userId }: IslandScreenProps) {
   const [openCategory, setOpenCategory] = useState<Category | null>(null);
   const [openPracticeIdx, setOpenPracticeIdx] = useState(0);
   const [letterOpen, setLetterOpen] = useState(false);
@@ -976,10 +975,6 @@ export default function IslandScreen({ onStartChat, suggestedPractice, userId, o
   const [activeLetter, setActiveLetter] = useState<LetterData>(ECHO_LETTER);
   const [hasUnread, setHasUnread] = useState(false);
   const [letterInsufficient, setLetterInsufficient] = useState(false);
-
-  useEffect(() => {
-    onPracticeActiveChange?.(directSession !== null);
-  }, [directSession, onPracticeActiveChange]);
 
   useEffect(() => {
     if (!userId) return; // guest — use hardcoded letter
