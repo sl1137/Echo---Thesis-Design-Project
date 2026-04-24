@@ -965,9 +965,10 @@ interface IslandScreenProps {
   suggestedPractice?: { practiceId: string; categoryId: string } | null;
   onDismissSuggestion?: () => void;
   userId?: string;
+  onPracticeActiveChange?: (active: boolean) => void;
 }
 
-export default function IslandScreen({ onStartChat, suggestedPractice, userId }: IslandScreenProps) {
+export default function IslandScreen({ onStartChat, suggestedPractice, userId, onPracticeActiveChange }: IslandScreenProps) {
   const [openCategory, setOpenCategory] = useState<Category | null>(null);
   const [openPracticeIdx, setOpenPracticeIdx] = useState(0);
   const [letterOpen, setLetterOpen] = useState(false);
@@ -975,6 +976,10 @@ export default function IslandScreen({ onStartChat, suggestedPractice, userId }:
   const [activeLetter, setActiveLetter] = useState<LetterData>(ECHO_LETTER);
   const [hasUnread, setHasUnread] = useState(false);
   const [letterInsufficient, setLetterInsufficient] = useState(false);
+
+  useEffect(() => {
+    onPracticeActiveChange?.(directSession !== null);
+  }, [directSession, onPracticeActiveChange]);
 
   useEffect(() => {
     if (!userId) return; // guest — use hardcoded letter
