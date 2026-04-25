@@ -351,12 +351,10 @@ function ValidationCardOverlay({
   card,
   messages,
   onClose,
-  onContinue,
 }: {
   card: CardData;
   messages: Message[];
   onClose: () => void;
-  onContinue: () => void;
 }) {
   const [tab, setTab] = useState<"analysis" | "transcript">("analysis");
 
@@ -369,7 +367,6 @@ function ValidationCardOverlay({
   const MUTED = "rgba(26,26,62,0.45)";
   const TAB_PILL = "rgba(26,26,62,0.10)";
   const TAB_ACTIVE = "rgba(255,255,255,0.80)";
-  const BTN_BG = "rgba(26,26,62,0.12)";
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col animate-fade-in" style={{ background: BG }}>
@@ -418,10 +415,6 @@ function ValidationCardOverlay({
             <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: MUTED }}>Insight</p>
             <p className="text-[14px] leading-relaxed" style={{ color: TEXT }}>{card.insight}</p>
           </div>
-          <button onClick={onContinue} className="w-full py-3.5 text-[14px] font-semibold transition-all active:scale-[0.98]"
-            style={{ background: BTN_BG, color: TEXT, borderRadius: 18, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-            Continue Chat
-          </button>
         </div>
       )}
 
@@ -1165,7 +1158,6 @@ export default function ChatScreen({
           card={validationCard}
           messages={messages}
           onClose={onBack}
-          onContinue={() => setValidationCard(null)}
         />
       )}
 
