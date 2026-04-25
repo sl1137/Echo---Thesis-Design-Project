@@ -687,6 +687,7 @@ export default function ProfileScreen({
   const [realEmotions, setRealEmotions] = useState<EmotionData[] | null>(null);
   const [realSuggestions, setRealSuggestions] = useState<string[] | null>(null);
   const [moodInsufficient, setMoodInsufficient] = useState(false);
+  const [suggestionsInsufficient, setSuggestionsInsufficient] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -701,6 +702,7 @@ export default function ProfileScreen({
       .then((r) => r.json())
       .then((data) => {
         if (data.suggestions) setRealSuggestions(data.suggestions);
+        else if (data.insufficient) setSuggestionsInsufficient(true);
       })
       .catch(() => {});
   }, [userId]);
@@ -861,6 +863,24 @@ export default function ProfileScreen({
       {/* AI Suggestions */}
       {isGuest && <AISuggestions suggestions={SUGGESTIONS} />}
       {!isGuest && realSuggestions && <AISuggestions suggestions={realSuggestions} />}
+      {!isGuest && !realSuggestions && suggestionsInsufficient && (
+        <div className="mx-4 mb-6">
+          <p
+            className="text-[13px] font-semibold mb-2 px-1"
+            style={{ color: "#1A1A2A" }}
+          >
+            AI Suggestions <span style={{ color: "#7B8FA0" }}>✦</span>
+          </p>
+          <div
+            className="rounded-2xl flex items-center justify-center py-10 px-6 text-center"
+            style={{ background: "rgba(255,255,255,0.6)" }}
+          >
+            <p className="text-[14px] leading-relaxed" style={{ color: "#888899" }}>
+              Chat with Echo a few times to get personal suggestions here.
+            </p>
+          </div>
+        </div>
+      )}
 
     </div>
 
