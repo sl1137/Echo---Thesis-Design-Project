@@ -1000,6 +1000,10 @@ export default function ChatScreen({
     else if (t.includes("feel") || t.includes("emotion") ||
         t.includes("感受") || t.includes("情绪") || t.includes("说不清") || t.includes("说不出"))
       match = { practiceId: "name_whats_here", categoryId: "clarify" };
+    else if (t.includes("future") || t.includes("direction") || t.includes("career") ||
+        t.includes("lost") || t.includes("fog") || t.includes("graduat") ||
+        t.includes("未来") || t.includes("方向") || t.includes("迷茫") || t.includes("毕业") || t.includes("前途"))
+      match = { practiceId: "map_the_fog", categoryId: "reframe" };
     else if (t.includes("step") || t.includes("stuck") || t.includes("task") ||
         t.includes("不知道怎么") || t.includes("卡住") || t.includes("迈出") || t.includes("第一步"))
       match = { practiceId: "one_tiny_next_step", categoryId: "reframe" };

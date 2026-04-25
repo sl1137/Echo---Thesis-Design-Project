@@ -225,6 +225,17 @@ const CATEGORIES: Category[] = [
         ],
       },
       {
+        id: "map_the_fog", name: "Map the Fog", bestFor: ["unclear future", "career uncertainty", "lost direction", "thesis confusion"], duration: "4–5 min",
+        description: "Turn a foggy worry about the future into one smaller, more workable question.", blobColor: "#FFECD8",
+        completion: "Fog isn't failure. You just made a piece of it smaller.",
+        steps: [
+          { instruction: "What's the bigger 'future' worry sitting underneath everything right now?", hint: "It can stay vague — \"my thesis,\" \"after graduation,\" \"what I'm even doing here.\" Just name it." },
+          { instruction: "Inside that worry, what's already a little known? What's still blank?", hint: "The fog usually has a few solid edges. Notice where they are." },
+          { instruction: "Find a smaller question inside the big one — something that could be partially answered.", hint: "Not \"what should my career be?\" Try \"what kind of work has felt least draining lately?\"" },
+          { instruction: "What's one tiny thing you could do this week to learn about that smaller question — not decide?", hint: "Talk to one person. Read one thing. Try one task. The aim is information, not commitment." },
+        ],
+      },
+      {
         id: "ten_minute_restart", name: "10-Minute Restart", bestFor: ["flat", "low energy", "shut down", "stuck"], duration: "10 min",
         description: "Restart movement when you feel heavy or inert.", blobColor: "#FFECD8",
         completion: "You restarted. That's the hardest part.",
