@@ -274,11 +274,9 @@ function Orb({
 // ─── Chat Header ──────────────────────────────────────────────────────
 function ChatHeader({
   onBack,
-  onEndChat,
   isEnding,
 }: {
   onBack: () => void;
-  onEndChat: () => void;
   isEnding: boolean;
 }) {
   return (
@@ -286,7 +284,8 @@ function ChatHeader({
       {/* Back */}
       <button
         onClick={onBack}
-        className="w-9 h-9 flex items-center justify-center transition-all active:scale-90 z-10"
+        disabled={isEnding}
+        className="w-9 h-9 flex items-center justify-center transition-all active:scale-90 z-10 disabled:opacity-50"
         style={{
           background: "rgba(255,255,255,0.72)",
           borderRadius: 12,
@@ -296,9 +295,13 @@ function ChatHeader({
         }}
         aria-label="Back"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a3e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
+        {isEnding ? (
+          <span className="w-3.5 h-3.5 border-2 border-current/40 border-t-current rounded-full animate-spin" style={{ color: "#1a1a3e" }} />
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a3e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        )}
       </button>
 
       {/* Title — absolutely centered so it's always in the middle */}
@@ -309,29 +312,8 @@ function ChatHeader({
         Chat with Echo
       </span>
 
-      {/* End Chat */}
-      <button
-        onClick={onEndChat}
-        disabled={isEnding}
-        className="px-4 h-9 flex items-center text-[13px] font-semibold transition-all active:scale-95 disabled:opacity-50"
-        style={{
-          background: "rgba(255,255,255,0.72)",
-          color: "#1a1a3e",
-          borderRadius: 999,
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,0.5)",
-        }}
-      >
-        {isEnding ? (
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 border-2 border-current/40 border-t-current rounded-full animate-spin" />
-            Saving…
-          </span>
-        ) : (
-          "End Chat"
-        )}
-      </button>
+      {/* Right placeholder to balance the back button width */}
+      <div className="w-9 h-9" aria-hidden />
     </header>
   );
 }
@@ -713,7 +695,6 @@ function VoiceFullMode({
   onConnect,
   onDisconnect,
   onSwitchToText,
-  onEndChat,
   lastEchoText,
   streamingText,
   prevEchoText,
@@ -723,7 +704,6 @@ function VoiceFullMode({
   onConnect: () => void;
   onDisconnect: () => void;
   onSwitchToText: () => void;
-  onEndChat: () => void;
   lastEchoText: string;
   streamingText: string;
   prevEchoText: string;
@@ -1036,6 +1016,20 @@ export default function ChatScreen({
       .finally(() => setIsLoading(false));
   }
 
+  // Minimum user turns required to trigger validation card on back
+  const VALIDATION_CARD_MIN_TURNS = 3;
+
+  // Back button: if conversation is meaningful, save + show validation card; otherwise just leave
+  function handleBack() {
+    if (isEnding) return;
+    const userTurns = messages.filter((m) => m.role === "user").length;
+    if (userTurns >= VALIDATION_CARD_MIN_TURNS) {
+      handleEndChat(); // generates card; ValidationCardOverlay's onClose triggers onBack
+    } else {
+      onBack();
+    }
+  }
+
   // End chat
   async function handleEndChat() {
     if (isEnding) return;
@@ -1147,7 +1141,7 @@ export default function ChatScreen({
         />
       )}
 
-      <ChatHeader onBack={onBack} onEndChat={handleEndChat} isEnding={isEnding} />
+      <ChatHeader onBack={handleBack} isEnding={isEnding} />
 
       {mode === "text" && (
         <>
@@ -1208,7 +1202,6 @@ export default function ChatScreen({
           onConnect={connectVoice}
           onDisconnect={disconnectVoice}
           onSwitchToText={() => { disconnectVoice(); setMode("text"); }}
-          onEndChat={handleEndChat}
           lastEchoText={lastEchoText}
           streamingText={streamingText}
           prevEchoText={prevEchoText}
