@@ -22,10 +22,12 @@ function MonthCalendarOverlay({
   selectedDate,
   onSelectDate,
   onClose,
+  sessionDays,
 }: {
   selectedDate: Date;
   onSelectDate: (d: Date) => void;
   onClose: () => void;
+  sessionDays: Set<string>;
 }) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
@@ -93,6 +95,7 @@ function MonthCalendarOverlay({
             if (!date) return <div key={i} />;
             const isSelected = date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === today.toDateString();
+            const hasSession = sessionDays.has(date.toDateString());
             return (
               <button
                 key={i}
@@ -103,7 +106,13 @@ function MonthCalendarOverlay({
                   className="w-9 h-9 flex items-center justify-center text-[15px] font-semibold"
                   style={{
                     borderRadius: "50%",
-                    background: isSelected ? "#E8909A" : isToday ? "rgba(255,255,255,0.7)" : "transparent",
+                    background: isSelected
+                      ? "#E8909A"
+                      : hasSession
+                        ? "rgba(232,144,154,0.22)"
+                        : isToday
+                          ? "rgba(255,255,255,0.7)"
+                          : "transparent",
                     color: isSelected ? "white" : "#1A1A2A",
                     border: isToday && !isSelected ? "1.5px solid #E8909A" : "none",
                   }}
@@ -135,9 +144,11 @@ function getWeekDates(anchor: Date): Date[] {
 function CalendarStrip({
   selectedDate,
   onSelectDate,
+  sessionDays,
 }: {
   selectedDate: Date;
   onSelectDate: (d: Date) => void;
+  sessionDays: Set<string>;
 }) {
   const today = new Date();
   const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
@@ -156,6 +167,8 @@ function CalendarStrip({
         ))}
         {weekDates.map((date, i) => {
           const isSelected = date.toDateString() === selectedDate.toDateString();
+          const isToday = date.toDateString() === today.toDateString();
+          const hasSession = sessionDays.has(date.toDateString());
           return (
             <button
               key={i}
@@ -166,8 +179,13 @@ function CalendarStrip({
                 className="w-9 h-9 flex items-center justify-center text-[17px] font-bold"
                 style={{
                   borderRadius: "50%",
-                  background: isSelected ? "#E8909A" : "transparent",
+                  background: isSelected
+                    ? "#E8909A"
+                    : hasSession
+                      ? "rgba(232,144,154,0.22)"
+                      : "transparent",
                   color: isSelected ? "white" : "#1A1A2A",
+                  border: isToday && !isSelected ? "1.5px solid #E8909A" : "none",
                 }}
               >
                 {date.getDate()}
@@ -691,6 +709,11 @@ export default function ProfileScreen({
     s.timestamp.toDateString() === selectedDate.toDateString()
   );
 
+  const sessionDayKeys = useMemo(
+    () => new Set(sessions.map((s) => s.timestamp.toDateString())),
+    [sessions]
+  );
+
   return (
     <div className="h-full relative">
     <div
@@ -759,7 +782,7 @@ export default function ProfileScreen({
       </div>
 
       {/* Calendar Strip */}
-      <CalendarStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+      <CalendarStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} sessionDays={sessionDayKeys} />
 
       {/* Daily Activity */}
       <div className="mx-4 mb-4">
@@ -852,6 +875,7 @@ export default function ProfileScreen({
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
           onClose={() => setShowCalendar(false)}
+          sessionDays={sessionDayKeys}
         />
       )}
 
