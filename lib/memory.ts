@@ -28,6 +28,13 @@ export async function saveSession(userId: string, data: SessionData): Promise<vo
     validation_sentence: data.validation_sentence,
   });
   if (error) console.error("[memory] saveSession error:", error.message);
+
+  // Invalidate AI suggestions cache so the next Profile open regenerates with this new session in mind.
+  // The 24h auto-refresh in /api/mood-suggestions stays as the baseline; this just adds event-driven freshness.
+  await supabase
+    .from("user_identity")
+    .update({ suggestions_updated_at: null, ai_suggestions: null })
+    .eq("user_id", userId);
 }
 
 // ─── Consolidate narratives for themes with 3+ sessions ───────────────
