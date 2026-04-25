@@ -134,6 +134,7 @@ const PRACTICE_NAMES: Record<string, { name: string; category: string; color: st
   check_the_facts: { name: "Check the Facts", category: "Clarify", color: "#7A6A2A" },
   why_hitting_hard: { name: "Why Is This Hitting So Hard?", category: "Clarify", color: "#7A6A2A" },
   one_tiny_next_step: { name: "One Tiny Next Step", category: "Reframe & Act", color: "#8A4A5A" },
+  map_the_fog: { name: "Map the Fog", category: "Reframe & Act", color: "#8A4A5A" },
   a_fairer_thought: { name: "A Fairer Thought", category: "Reframe & Act", color: "#8A4A5A" },
   say_it_clearly: { name: "Say It Clearly", category: "Reframe & Act", color: "#8A4A5A" },
   what_would_help_future_me: { name: "What Would Help Future Me?", category: "Reframe & Act", color: "#8A4A5A" },
@@ -985,9 +986,12 @@ export default function ChatScreen({
   }
 
   function maybeSuggestPractice(echoText: string) {
-    if (!onSuggestPractice) return;
     const wasAsked = userAskedForPracticeRef.current;
     userAskedForPracticeRef.current = false; // consume the bypass flag after one attempt
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[practiceNudge] try", { hasCallback: !!onSuggestPractice, alreadySuggested: suggestedRef.current, wasAsked, sampleText: echoText.slice(0, 120) });
+    }
+    if (!onSuggestPractice) return;
     if (suggestedRef.current && !wasAsked) return;
     const t = echoText.toLowerCase();
     let match: { practiceId: string; categoryId: string } | null = null;
@@ -1012,6 +1016,9 @@ export default function ChatScreen({
       match = { practiceId: "catch_the_thought", categoryId: "clarify" };
     // Fallback: user explicitly asked but nothing matched → offer "Name What's Here" as a gentle starting point
     if (!match && wasAsked) match = { practiceId: "name_whats_here", categoryId: "clarify" };
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[practiceNudge] result", match);
+    }
     if (!match) return;
     suggestedRef.current = true;
     onSuggestPractice(match);
