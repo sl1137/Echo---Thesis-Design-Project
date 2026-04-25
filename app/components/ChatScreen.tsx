@@ -853,6 +853,8 @@ export default function ChatScreen({
   const [isLoading, setIsLoading] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const suggestedRef = useRef(false);
+  // One-shot bypass: when user explicitly asks for a method/practice, allow re-suggestion even if already suggested once
+  const userAskedForPracticeRef = useRef(false);
   const [validationCard, setValidationCard] = useState<CardData | null>(null);
   const [lastEchoText, setLastEchoText] = useState("");
   const lastEchoTextRef = useRef("");
@@ -990,7 +992,10 @@ export default function ChatScreen({
   }
 
   function maybeSuggestPractice(echoText: string) {
-    if (suggestedRef.current || !onSuggestPractice) return;
+    if (!onSuggestPractice) return;
+    const wasAsked = userAskedForPracticeRef.current;
+    userAskedForPracticeRef.current = false; // consume the bypass flag after one attempt
+    if (suggestedRef.current && !wasAsked) return;
     const t = echoText.toLowerCase();
     let match: { practiceId: string; categoryId: string } | null = null;
     if (t.includes("breath") || t.includes("anxious") || t.includes("tense") ||
@@ -1017,6 +1022,11 @@ export default function ChatScreen({
   function handleSend() {
     if (!input.trim() || isLoading) return;
     const userMsg: Message = { id: Date.now().toString(), role: "user", text: input.trim() };
+    // Detect explicit ask for help/practice — bypass the once-per-session limit
+    if (/\b(method|methods|way|ways|tip|tips|advice|exercise|practice|technique|help me|something i can|what can i|how do i|how can i)\b/i.test(userMsg.text)
+        || /(方法|办法|怎么办|有什么|有没有|帮我|让我|怎样才能|如何才能|建议|练习)/.test(userMsg.text)) {
+      userAskedForPracticeRef.current = true;
+    }
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
@@ -1027,7 +1037,8 @@ export default function ChatScreen({
           if (i > 0) await new Promise((r) => setTimeout(r, 900));
           setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text: bubbles[i] }]);
         }
-        maybeSuggestPractice(bubbles[bubbles.length - 1] ?? "");
+        // Match keywords across the user's ask + all Echo bubbles, so explicit asks are picked up
+        maybeSuggestPractice([userMsg.text, ...bubbles].join(" "));
       })
       .catch(() => setMessages((prev) => [...prev, { id: `${Date.now()}`, role: "echo", text: "I'm here." }]))
       .finally(() => setIsLoading(false));
