@@ -89,7 +89,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    let { message, conversation = [], userId, guestRecentContext } = body;
+    let { message, conversation = [], userId, guestRecentContext, practiceContext } = body;
 
     console.log("[API] Received request:", { message, conversationLength: conversation.length });
 
@@ -97,6 +97,7 @@ export async function POST(request: Request) {
     const isOpening = message === "[OPENING]";
     const isSafeConfirmation = message === "[USER_CONFIRMED_SAFE]";
     const isDriftRewrite = (message || "").startsWith("[DRIFT_REWRITE]");
+    const isPracticeCompleted = message === "[PRACTICE_COMPLETED]" && practiceContext;
 
     // For opening message, use empty message to trigger greeting
     if (isOpening) {
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
     // Build messages array with system instruction
     // Use lite version of prompt to avoid token issues
     // Add language instruction based on user's language
-    const languageInstruction = isOpening ? "" : getLanguageInstruction(message || "", conversation);
+    const languageInstruction = (isOpening || isPracticeCompleted) ? "" : getLanguageInstruction(message || "", conversation);
 
     // Inject memory context if userId provided, or use guest recent context
     const memoryContext = userId ? await getMemoryContext(userId) : "";
@@ -159,6 +160,8 @@ export async function POST(request: Request) {
           ? `[System: A user tried to send this as an anonymous drift bottle message to other students, but it contains crisis-level content. Suggest ONE alternative short message (1-2 sentences max) that expresses the same underlying emotion in a way that's safe to share with peers. Keep it genuine and raw — not clinical or sanitized. Just the rewritten message text, nothing else. Original: "${message.replace("[DRIFT_REWRITE] ", "")}"]` + jsonReminder
           : isOpening && effectiveContext
           ? `[System: This user is starting a new conversation. You have memory of previous sessions (see above). Open with a warm, natural 1-2 bubble greeting that references one specific topic or situation from a recent session — like asking how their thesis is going, or what happened with something they mentioned. DO NOT assume the user was in a bad mood or distressed. DO NOT ask if they feel better or if things have improved emotionally. Only ask about the topic or situation itself, neutrally and naturally. Sound like a friend who remembers what you talked about, not a therapist checking on your emotional state. Keep it short and conversational. Always respond in English — only switch to Chinese if the user replies in Chinese first.]` + jsonReminder
+          : isPracticeCompleted
+          ? `[System: The user just completed a brief practice called "${practiceContext.name}". The practice is for: ${practiceContext.description} After completion the practice tells them: "${practiceContext.completion}" They've now returned to the chat. Ask ONE short, warm follow-up question that reflects what THIS specific practice was for — for a breathing/body practice ask how their body feels, for naming emotions ask if anything feels clearer or more named, for stopping a spiral ask if they have a bit more space now, for grounding ask if the room feels different. DO NOT use a generic "how did it go" or "did it help". Be specific to the practice's purpose. Match the language of the previous conversation (English by default; switch to Chinese only if previous user messages were in Chinese). Keep it to 1 bubble, conversational and warm.]` + jsonReminder
           : (message || "hi") + jsonReminder,
       },
     ];
@@ -230,7 +233,7 @@ export async function POST(request: Request) {
       bubbles = ["…"];
     }
 
-    const crisis = (isSafeConfirmation || isDriftRewrite) ? false : detectCrisis(message || "");
+    const crisis = (isSafeConfirmation || isDriftRewrite || isPracticeCompleted) ? false : detectCrisis(message || "");
     return NextResponse.json({ bubbles, crisis });
   } catch (err) {
     console.error("Chat API error:", err);

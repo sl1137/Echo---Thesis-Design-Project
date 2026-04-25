@@ -319,11 +319,13 @@ export function PracticeSessionOverlay({
   practice,
   category,
   onClose,
+  onComplete,
   doneLabel,
 }: {
   practice: Practice;
   category: Category;
   onClose: () => void;
+  onComplete?: () => void;
   doneLabel?: string;
 }) {
   const [stepIdx, setStepIdx] = useState(0);
@@ -394,7 +396,7 @@ export function PracticeSessionOverlay({
               {practice.completion}
             </p>
             <button
-              onClick={onClose}
+              onClick={() => { onComplete?.(); onClose(); }}
               className="mt-10 px-10 py-3.5 rounded-full text-[15px] font-semibold text-white transition-all active:scale-95"
               style={{ background: "#5A7AAA" }}
             >

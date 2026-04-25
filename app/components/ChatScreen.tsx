@@ -952,7 +952,10 @@ export default function ChatScreen({
   }, []);
 
   // Send text
-  async function sendToEcho(userText: string): Promise<string[]> {
+  async function sendToEcho(
+    userText: string,
+    extra?: { practiceContext?: { name: string; description: string; completion: string } },
+  ): Promise<string[]> {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -960,6 +963,7 @@ export default function ChatScreen({
         message: userText,
         conversation: messages.slice(-20).map((m) => ({ role: m.role, content: m.text })),
         userId: userIdRef.current,
+        ...(extra?.practiceContext ? { practiceContext: extra.practiceContext } : {}),
       }),
     });
     if (!res.ok) throw new Error("Chat error");
@@ -970,6 +974,19 @@ export default function ChatScreen({
       return []; // Suppress Echo's normal response — wait for "I'm safe"
     }
     return data.bubbles?.filter((b: string) => b?.trim()) || [data.response || "I'm here."];
+  }
+
+  async function sendPracticeFollowup(p: { name: string; description: string; completion: string }) {
+    try {
+      const bubbles = await sendToEcho("[PRACTICE_COMPLETED]", { practiceContext: p });
+      const ts = Date.now();
+      for (let i = 0; i < bubbles.length; i++) {
+        if (i > 0) await new Promise((r) => setTimeout(r, 900));
+        setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text: bubbles[i] }]);
+      }
+    } catch {
+      // silent fail — follow-up is a nice-to-have
+    }
   }
 
   function maybeSuggestPractice(echoText: string) {
@@ -1217,6 +1234,11 @@ export default function ChatScreen({
             practice={practice}
             category={cat}
             onClose={() => setActivePractice(null)}
+            onComplete={() => sendPracticeFollowup({
+              name: practice.name,
+              description: practice.description,
+              completion: practice.completion,
+            })}
             doneLabel="Continue to chat"
           />
         );
