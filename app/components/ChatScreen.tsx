@@ -991,26 +991,28 @@ export default function ChatScreen({
     if (suggestedRef.current && !wasAsked) return;
     const t = echoText.toLowerCase();
     let match: { practiceId: string; categoryId: string } | null = null;
-    if (t.includes("breath") || t.includes("anxious") || t.includes("tense") ||
-        t.includes("呼吸") || t.includes("焦虑") || t.includes("紧张") || t.includes("喘不过"))
+    if (t.includes("breath") || t.includes("anxious") || t.includes("anxi") || t.includes("tense") || t.includes("racing heart") || t.includes("nervous") || t.includes("panic") ||
+        t.includes("呼吸") || t.includes("焦虑") || t.includes("紧张") || t.includes("喘不过") || t.includes("心慌") || t.includes("睡不着"))
       match = { practiceId: "slow_exhale", categoryId: "stabilize" };
-    else if (t.includes("spiral") || t.includes("pause") || t.includes("overwhelm") ||
-        t.includes("停一下") || t.includes("喘口气") || t.includes("透不过气") || t.includes("崩溃") || t.includes("承受"))
+    else if (t.includes("spiral") || t.includes("pause") || t.includes("overwhelm") || t.includes("too much") || t.includes("can't handle") || t.includes("burnt out") || t.includes("burn out") || t.includes("stressed") || t.includes("stress") || t.includes("乱") ||
+        t.includes("停一下") || t.includes("喘口气") || t.includes("透不过气") || t.includes("崩溃") || t.includes("承受") || t.includes("撑不住") || t.includes("受不了") || t.includes("压力") || t.includes("烦"))
       match = { practiceId: "pause_with_me", categoryId: "stabilize" };
-    else if (t.includes("feel") || t.includes("emotion") ||
-        t.includes("感受") || t.includes("情绪") || t.includes("说不清") || t.includes("说不出"))
+    else if (t.includes("feel") || t.includes("emotion") || t.includes("sad") || t.includes("down") || t.includes("lonely") || t.includes("alone") || t.includes("numb") || t.includes("tired") || t.includes("exhausted") ||
+        t.includes("感受") || t.includes("情绪") || t.includes("说不清") || t.includes("说不出") || t.includes("难过") || t.includes("低落") || t.includes("孤独") || t.includes("累") || t.includes("空"))
       match = { practiceId: "name_whats_here", categoryId: "clarify" };
     else if (t.includes("future") || t.includes("direction") || t.includes("career") ||
-        t.includes("lost") || t.includes("fog") || t.includes("graduat") ||
-        t.includes("未来") || t.includes("方向") || t.includes("迷茫") || t.includes("毕业") || t.includes("前途"))
+        t.includes("lost") || t.includes("fog") || t.includes("graduat") || t.includes("what to do with my life") ||
+        t.includes("未来") || t.includes("方向") || t.includes("迷茫") || t.includes("毕业") || t.includes("前途") || t.includes("人生"))
       match = { practiceId: "map_the_fog", categoryId: "reframe" };
-    else if (t.includes("step") || t.includes("stuck") || t.includes("task") ||
-        t.includes("不知道怎么") || t.includes("卡住") || t.includes("迈出") || t.includes("第一步"))
+    else if (t.includes("step") || t.includes("stuck") || t.includes("task") || t.includes("don't know how") || t.includes("don't know where") || t.includes("can't start") || t.includes("frozen") || t.includes("paralyz") ||
+        t.includes("不知道") || t.includes("卡住") || t.includes("迈出") || t.includes("第一步") || t.includes("做不了") || t.includes("没动力"))
       match = { practiceId: "one_tiny_next_step", categoryId: "reframe" };
-    else if (t.includes("thought") || t.includes("reaction") || t.includes("automatic") ||
-        t.includes("想法") || t.includes("脑子里") || t.includes("自动") || t.includes("反应"))
+    else if (t.includes("thought") || t.includes("reaction") || t.includes("automatic") || t.includes("mind racing") || t.includes("can't stop thinking") || t.includes("ruminat") ||
+        t.includes("想法") || t.includes("脑子") || t.includes("自动") || t.includes("反应") || t.includes("一直想") || t.includes("停不下"))
       match = { practiceId: "catch_the_thought", categoryId: "clarify" };
-    if (!match) return; // No keyword match — don't suggest
+    // Fallback: user explicitly asked but nothing matched → offer "Name What's Here" as a gentle starting point
+    if (!match && wasAsked) match = { practiceId: "name_whats_here", categoryId: "clarify" };
+    if (!match) return;
     suggestedRef.current = true;
     onSuggestPractice(match);
     setPracticeNudge(match);
@@ -1020,8 +1022,8 @@ export default function ChatScreen({
     if (!input.trim() || isLoading) return;
     const userMsg: Message = { id: Date.now().toString(), role: "user", text: input.trim() };
     // Detect explicit ask for help/practice — bypass the once-per-session limit
-    if (/\b(method|methods|way|ways|tip|tips|advice|exercise|practice|technique|help me|something i can|what can i|how do i|how can i)\b/i.test(userMsg.text)
-        || /(方法|办法|怎么办|有什么|有没有|帮我|让我|怎样才能|如何才能|建议|练习)/.test(userMsg.text)) {
+    if (/\b(method|methods|way|ways|tip|tips|advice|exercise|practice|technique|recommend|suggest|something i can|what can i|how do i|how can i|help me|just help)\b/i.test(userMsg.text)
+        || /(方法|办法|怎么办|有什么|有没有|帮我|帮帮|让我|怎样|如何|建议|练习|推荐|推一个|试一下|试试|教我|给我个|给我一个|什么能|有啥)/.test(userMsg.text)) {
       userAskedForPracticeRef.current = true;
     }
     setMessages((prev) => [...prev, userMsg]);
