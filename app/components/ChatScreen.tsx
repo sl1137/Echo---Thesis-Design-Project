@@ -1039,9 +1039,22 @@ export default function ChatScreen({
     sendToEcho(userMsg.text)
       .then(async (bubbles) => {
         const ts = Date.now();
+        // Snapshot of last few Echo messages — dedup against them so OpenAI doesn't re-emit the same line
+        const recentEcho = messages
+          .filter((m) => m.role === "echo")
+          .slice(-5)
+          .map((m) => m.text.trim());
+        const inserted: string[] = [];
         for (let i = 0; i < bubbles.length; i++) {
-          if (i > 0) await new Promise((r) => setTimeout(r, 900));
-          setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text: bubbles[i] }]);
+          const text = bubbles[i].trim();
+          if (recentEcho.includes(text) || inserted.includes(text)) {
+            // Skip duplicate; preserve pacing only if more bubbles follow
+            if (i < bubbles.length - 1) await new Promise((r) => setTimeout(r, 900));
+            continue;
+          }
+          setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text }]);
+          inserted.push(text);
+          if (i < bubbles.length - 1) await new Promise((r) => setTimeout(r, 900));
         }
         // Match keywords across the user's ask + all Echo bubbles, so explicit asks are picked up
         maybeSuggestPractice([userMsg.text, ...bubbles].join(" "));
