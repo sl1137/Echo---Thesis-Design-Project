@@ -1321,7 +1321,14 @@ export default function DriftSeaScreen({ isGuest = true, userId }: { isGuest?: b
                   key={b.id}
                   bottle={b}
                   onOpen={() => setDetailBottle(b)}
-                  onRecall={() => setMyBottles((prev) => prev.filter((x) => x.id !== b.id))}
+                  onRecall={async () => {
+                    if (userId) {
+                      try {
+                        await fetch(`/api/drift/bottle?id=${b.id}&userId=${userId}`, { method: "DELETE" });
+                      } catch { /* swallow — still remove from UI */ }
+                    }
+                    setMyBottles((prev) => prev.filter((x) => x.id !== b.id));
+                  }}
                 />
               ))}
             </div>

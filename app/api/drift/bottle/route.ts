@@ -72,3 +72,46 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const userId = searchParams.get("userId");
+    if (!id || !userId) {
+      return NextResponse.json({ error: "Missing id or userId" }, { status: 400 });
+    }
+
+    // Verify the bottle belongs to this user before deleting
+    const { data: bottle, error: fetchErr } = await supabase
+      .from("drift_bottles")
+      .select("sender_id")
+      .eq("id", id)
+      .single();
+
+    if (fetchErr || !bottle) {
+      return NextResponse.json({ error: "Bottle not found" }, { status: 404 });
+    }
+    if (bottle.sender_id !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Delete delivery / reply records first, then the bottle itself
+    await supabase.from("drift_recipients").delete().eq("bottle_id", id);
+    const { error: deleteErr } = await supabase
+      .from("drift_bottles")
+      .delete()
+      .eq("id", id)
+      .eq("sender_id", userId);
+
+    if (deleteErr) {
+      console.error("[drift/bottle] delete error:", deleteErr);
+      return NextResponse.json({ error: "Failed to delete bottle" }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[drift/bottle] DELETE", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
