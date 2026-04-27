@@ -987,9 +987,18 @@ interface IslandScreenProps {
   suggestedPractice?: { practiceId: string; categoryId: string } | null;
   onDismissSuggestion?: () => void;
   userId?: string;
+  userName?: string;
 }
 
-export default function IslandScreen({ onStartChat, suggestedPractice, userId }: IslandScreenProps) {
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Morning";
+  if (h >= 12 && h < 17) return "Afternoon";
+  if (h >= 17 && h < 21) return "Evening";
+  return "Evening";
+}
+
+export default function IslandScreen({ onStartChat, suggestedPractice, userId, userName }: IslandScreenProps) {
   const [openCategory, setOpenCategory] = useState<Category | null>(null);
   const [openPracticeIdx, setOpenPracticeIdx] = useState(0);
   const [letterOpen, setLetterOpen] = useState(false);
@@ -1038,7 +1047,7 @@ export default function IslandScreen({ onStartChat, suggestedPractice, userId }:
           <div className="flex items-start gap-3 mb-4 animate-fade-in">
             <div className="flex-1">
               <p className="text-[13px] font-medium mb-0.5" style={{ color: "#AA8888" }}>
-                Morning, Cynthia
+                {getGreeting()}{userName ? `, ${userName.split(" ")[0]}` : ""}
               </p>
               <h1 className="text-[26px] font-bold leading-tight" style={{ color: "#1A1A2A" }}>
                 How have things<br />been today?

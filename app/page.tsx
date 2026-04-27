@@ -101,6 +101,7 @@ export default function EchoApp() {
                   suggestedPractice={suggestedPractice}
                   onDismissSuggestion={() => setSuggestedPractice(null)}
                   userId={guestMode ? undefined : (userId || undefined)}
+                  userName={guestMode ? undefined : (userName || undefined)}
                 />
               </div>
             )}
