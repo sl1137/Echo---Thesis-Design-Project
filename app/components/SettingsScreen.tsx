@@ -143,7 +143,7 @@ const IconLogout = () => (
 );
 
 // ─── SettingsScreen ───────────────────────────────────────────────────
-export default function SettingsScreen({ onBack, onLogout }: { onBack: () => void; onLogout?: () => void }) {
+export default function SettingsScreen({ onBack, onLogout, userName, userEmail }: { onBack: () => void; onLogout?: () => void; userName?: string; userEmail?: string }) {
   const [darkMode, setDarkMode] = useState(false);
 
   return (
@@ -180,8 +180,8 @@ export default function SettingsScreen({ onBack, onLogout }: { onBack: () => voi
               style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
             />
             <div className="flex-1 min-w-0">
-              <p className="text-[16px] font-bold" style={{ color: "#1a1a3e" }}>Cynthia Liang</p>
-              <p className="text-[13px]" style={{ color: "#6a6a8a" }}>Student &amp; photographer</p>
+              <p className="text-[16px] font-bold" style={{ color: "#1a1a3e" }}>{userName || "Cynthia Liang"}</p>
+              <p className="text-[13px]" style={{ color: "#6a6a8a" }}>{userEmail || "Student & photographer"}</p>
             </div>
             <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
               <path d="M1 1l5 5-5 5" stroke="#b0b0c8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

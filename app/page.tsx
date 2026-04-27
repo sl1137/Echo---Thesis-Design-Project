@@ -53,6 +53,7 @@ export default function EchoApp() {
   });
   const [userId, setUserId] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
   const [guestMode, setGuestMode] = useState(false);
 
   // Check for existing Supabase session on mount (handles OAuth redirect return)
@@ -62,6 +63,7 @@ export default function EchoApp() {
         const u = data.session.user;
         setUserId(u.id);
         setUserName(u.user_metadata?.full_name || u.email?.split("@")[0] || "");
+        setUserEmail(u.email || "");
         setScreen("main");
       }
     });
@@ -70,10 +72,12 @@ export default function EchoApp() {
         const u = session.user;
         setUserId(u.id);
         setUserName(u.user_metadata?.full_name || u.email?.split("@")[0] || "");
+        setUserEmail(u.email || "");
         setScreen("main");
       } else {
         setUserId("");
         setUserName("");
+        setUserEmail("");
       }
     });
     return () => listener.subscription.unsubscribe();
@@ -133,6 +137,8 @@ export default function EchoApp() {
           <SettingsScreen
             onBack={() => setSettingsOpen(false)}
             onLogout={() => { setSettingsOpen(false); setScreen("enter"); }}
+            userName={guestMode ? undefined : userName}
+            userEmail={guestMode ? undefined : userEmail}
           />
         )}
       </div>
