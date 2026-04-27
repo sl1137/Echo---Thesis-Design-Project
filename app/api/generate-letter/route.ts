@@ -88,7 +88,7 @@ ${personalityNotes ? `About them: ${personalityNotes}\n` : ""}${narrativeContext
 
 Write a warm, personal letter in JSON format:
 {
-  "date": "<current month and day, e.g. Apr 7, 2026>",
+  "date": "will be set automatically",
   "title": "<2-line emotional title, use \\n for line break>",
   "sections": [
     { "body": "<opening paragraph — personal, warm, no heading>" },
@@ -121,7 +121,10 @@ Guidelines:
   if (!res.ok) return null;
   const data = await res.json();
   try {
-    return JSON.parse(data.choices[0].message.content);
+    const letter = JSON.parse(data.choices[0].message.content);
+    const now = new Date();
+    letter.date = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return letter;
   } catch {
     return null;
   }
