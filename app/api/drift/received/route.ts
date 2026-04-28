@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase
     .from("drift_recipients")
     .select(`
-      id, received_at, reply_text, bottle_read,
+      id, received_at, reply_text, bottle_read, resonated_at,
       drift_bottles ( content, feeling_tags, topic_tags )
     `)
     .eq("recipient_id", userId)
@@ -30,6 +30,7 @@ export async function GET(request: Request) {
       received_at: r.received_at,
       replied: !!r.reply_text,
       bottle_read: r.bottle_read,
+      resonated: !!r.resonated_at,
     };
   });
 

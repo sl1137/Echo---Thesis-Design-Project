@@ -31,6 +31,7 @@ interface BottleEntry {
   emotions: string[];
   topics: string[];
   replies: BottleReplyItem[];
+  resonanceCount?: number;
 }
 
 interface ReceivedBottle {
@@ -59,6 +60,7 @@ interface ApiBottle {
   created_at: string;
   replied: boolean;
   reply_read: boolean;
+  resonance_count?: number;
 }
 
 interface ApiReceivedBottle {
@@ -68,6 +70,7 @@ interface ApiReceivedBottle {
   topic_tags: string[];
   received_at: string;
   replied: boolean;
+  resonated?: boolean;
 }
 
 interface ApiReply {
@@ -86,10 +89,11 @@ function apiBottleToEntry(b: ApiBottle): BottleEntry {
     emotions: b.feeling_tags,
     topics: b.topic_tags,
     replies: b.replied ? [{ id: "replied", date: "", text: "Someone replied to your bottle.", from: "anonymous" }] : [],
+    resonanceCount: b.resonance_count ?? 0,
   };
 }
 
-function apiReceivedToBottle(r: ApiReceivedBottle): ReceivedBottle & { recipientRecordId: string; replied: boolean } {
+function apiReceivedToBottle(r: ApiReceivedBottle): ReceivedBottle & { recipientRecordId: string; replied: boolean; resonated: boolean } {
   return {
     id: r.recipient_record_id,
     recipientRecordId: r.recipient_record_id,
@@ -98,6 +102,7 @@ function apiReceivedToBottle(r: ApiReceivedBottle): ReceivedBottle & { recipient
     emotions: r.feeling_tags,
     topics: r.topic_tags,
     replied: r.replied,
+    resonated: r.resonated ?? false,
   };
 }
 
@@ -152,14 +157,27 @@ const SEED_MY_BOTTLES: BottleEntry[] = [
   },
 ];
 
-const RECEIVED_BOTTLES: ReceivedBottle[] = [
+const SEED_BOTTLES: ReceivedBottle[] = [
   {
-    id: "r1",
-    date: "Apr 2",
-    content:
-      "Sometimes I just want someone to understand without having to explain everything. The weight of explaining feels too heavy.",
-    emotions: ["Lonely", "Tired"],
+    id: "seed1",
+    date: "Apr 26",
+    content: "I keep telling myself I just need to push through, but I've been saying that for three months now. Not sure what I'm even pushing toward anymore.",
+    emotions: ["Exhausted", "Lost"],
+    topics: ["Grad School", "Future"],
+  },
+  {
+    id: "seed2",
+    date: "Apr 25",
+    content: "Had a moment today where I just sat outside and didn't think about anything for ten minutes. First time in a while. Wanted to tell someone.",
+    emotions: ["Calm", "Grateful"],
     topics: ["Daily Life"],
+  },
+  {
+    id: "seed3",
+    date: "Apr 24",
+    content: "I moved here alone and I still don't really know how to explain the loneliness to people back home. It's not bad — it's just... different.",
+    emotions: ["Lonely", "Homesick"],
+    topics: ["International Life"],
   },
 ];
 
@@ -841,6 +859,18 @@ function BottleDetailScreen({ bottle, onBack }: { bottle: BottleEntry; onBack: (
           </div>
         </div>
 
+        {/* Resonance count */}
+        {(bottle.resonanceCount ?? 0) > 0 && (
+          <div className="flex items-center gap-1.5 mb-4 px-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#C07090" stroke="#C07090" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span className="text-[13px]" style={{ color: "#C07090" }}>
+              {bottle.resonanceCount} {bottle.resonanceCount === 1 ? "person felt this too" : "people felt this too"}
+            </span>
+          </div>
+        )}
+
         {/* Replies section */}
         <p className="text-[13px] font-semibold mb-3 px-1" style={{ color: "#8A9AAA" }}>
           {bottle.replies.length === 0 ? "No replies yet" : `${bottle.replies.length} ${bottle.replies.length === 1 ? "reply" : "replies"}`}
@@ -966,43 +996,174 @@ function MyBottleCard({ bottle, onRecall, onOpen }: { bottle: BottleEntry; onRec
 
 // ─── Received Bottle Card ────────────────────────────────────────────
 
+// ─── Reply Sheet Overlay ─────────────────────────────────────────────
+
+const REPLY_STARTERS = [
+  "I felt that too…",
+  "Something that helped me…",
+  "You're not alone because…",
+];
+
+function ReplySheetOverlay({
+  bottle,
+  userId,
+  recipientRecordId,
+  isSeed,
+  onClose,
+  onSent,
+}: {
+  bottle: ReceivedBottle;
+  userId?: string;
+  recipientRecordId?: string;
+  isSeed?: boolean;
+  onClose: () => void;
+  onSent: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function handleSend() {
+    if (!text.trim() || sending) return;
+    setSending(true);
+    if (!isSeed && userId && recipientRecordId) {
+      try {
+        await fetch("/api/drift/reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, recipientRecordId, replyText: text.trim() }),
+        });
+      } catch { /* show success anyway */ }
+    }
+    setSending(false);
+    setDone(true);
+    setTimeout(() => { onSent(); onClose(); }, 1400);
+  }
+
+  return (
+    <div
+      className="absolute inset-0 z-50 flex flex-col animate-fade-in"
+      style={{ background: "rgba(210,220,236,0.97)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 pt-14 pb-4 flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
+          style={{ background: "rgba(255,255,255,0.70)" }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A4A5A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+        <p className="text-[16px] font-bold" style={{ color: "#1A2A3A" }}>Reply to this bottle</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pb-8 flex flex-col gap-4">
+        {/* Quote */}
+        <div className="p-4 rounded-2xl" style={{ background: "rgba(255,255,255,0.60)" }}>
+          <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#9AAAB8" }}>Their bottle</p>
+          <p className="text-[13px] leading-relaxed italic" style={{ color: "#4A5A6A" }}>
+            "{bottle.content.slice(0, 120)}{bottle.content.length > 120 ? "…" : ""}"
+          </p>
+          <div className="flex flex-wrap gap-1.5 mt-2.5">
+            {[...bottle.emotions, ...bottle.topics].map((tag) => (
+              <TagPill key={tag} label={tag} />
+            ))}
+          </div>
+        </div>
+
+        {/* Starter prompts */}
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest mb-2 px-1" style={{ color: "#9AAAB8" }}>Start with</p>
+          <div className="flex flex-wrap gap-2">
+            {REPLY_STARTERS.map((s) => (
+              <button
+                key={s}
+                onClick={() => setText((t) => t ? t : s)}
+                className="text-[12px] px-3 py-1.5 rounded-full transition-all active:scale-95"
+                style={{ background: "rgba(255,255,255,0.80)", color: "#4A6A8A", border: "1px solid rgba(100,140,180,0.18)" }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Textarea */}
+        <div className="p-4 rounded-2xl" style={{ background: "rgba(255,255,255,0.82)" }}>
+          <textarea
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Write something genuine…"
+            rows={5}
+            className="w-full text-[14px] leading-relaxed outline-none resize-none"
+            style={{ background: "transparent", color: "#1A2A3A" }}
+          />
+        </div>
+
+        {/* Send button */}
+        <button
+          onClick={handleSend}
+          disabled={!text.trim() || sending || done}
+          className="w-full py-3.5 flex items-center justify-center gap-2 rounded-2xl font-semibold text-[15px] transition-all active:scale-[0.98]"
+          style={{
+            background: done ? "#4A8A6A" : (!text.trim() ? "rgba(45,58,74,0.35)" : "#2D3A4A"),
+            color: "white",
+          }}
+        >
+          {done ? (
+            <>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {isSeed ? "Your reply drifted out 🌊" : "Reply sent"}
+            </>
+          ) : sending ? "Sending…" : "Send reply"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Received Bottle Card ─────────────────────────────────────────────
+
 function ReceivedBottleCard({
   bottle,
   userId,
   recipientRecordId,
+  initialHearted = false,
+  isSeed = false,
   onReplySent,
 }: {
   bottle: ReceivedBottle;
   userId?: string;
   recipientRecordId?: string;
+  initialHearted?: boolean;
+  isSeed?: boolean;
   onReplySent?: (id: string) => void;
 }) {
-  const [hearted, setHearted] = useState(false);
+  const [hearted, setHearted] = useState(initialHearted);
   const [replyOpen, setReplyOpen] = useState(false);
-  const [replyText, setReplyText] = useState("");
   const [replySent, setReplySent] = useState((bottle as ReceivedBottle & { replied?: boolean }).replied ?? false);
-  const [sending, setSending] = useState(false);
 
-  async function sendReply() {
-    if (!replyText.trim() || sending) return;
-    setSending(true);
-    if (userId && recipientRecordId) {
+  async function toggleHeart() {
+    const next = !hearted;
+    setHearted(next);
+    if (!isSeed && userId && recipientRecordId) {
       try {
-        await fetch("/api/drift/reply", {
+        await fetch("/api/drift/resonate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, recipientRecordId, replyText: replyText.trim() }),
+          body: JSON.stringify({ userId, recipientRecordId }),
         });
-      } catch { /* show success anyway */ }
+      } catch { /* optimistic, swallow error */ }
     }
-    setSending(false);
-    setReplySent(true);
-    setReplyOpen(false);
-    setReplyText("");
-    onReplySent?.(recipientRecordId ?? bottle.id);
   }
 
   return (
+    <>
     <div style={{ background: "rgba(255,255,255,0.82)", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 8px rgba(80,100,160,0.06)" }}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[12px]" style={{ color: "#9AAAB8" }}>{bottle.date}</span>
@@ -1018,13 +1179,12 @@ function ReceivedBottleCard({
       {/* Action buttons */}
       <div className="flex gap-2">
         <button
-          onClick={() => setHearted((h) => !h)}
+          onClick={toggleHeart}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all active:scale-95"
           style={{
             background: hearted ? "#F9D0DF" : "#FDEAF2",
             borderRadius: 12,
             color: "#C07090",
-            transform: hearted ? "scale(1.03)" : "scale(1)",
             transition: "all 0.2s cubic-bezier(0.34,1.56,0.64,1)",
           }}
         >
@@ -1033,7 +1193,7 @@ function ReceivedBottleCard({
             stroke="#C07090" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
-          <span className="text-[12px] font-medium">You're not alone</span>
+          <span className="text-[12px] font-medium">Felt this too</span>
         </button>
 
         {replySent ? (
@@ -1046,13 +1206,9 @@ function ReceivedBottleCard({
           </div>
         ) : (
           <button
-            onClick={() => setReplyOpen((o) => !o)}
+            onClick={() => setReplyOpen(true)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all active:scale-95"
-            style={{
-              background: replyOpen ? "#DDE6F8" : "#EEF2FA",
-              borderRadius: 12,
-              color: "#5A7AAA",
-            }}
+            style={{ background: "#EEF2FA", borderRadius: 12, color: "#5A7AAA" }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -1061,30 +1217,23 @@ function ReceivedBottleCard({
           </button>
         )}
       </div>
-
-      {/* Inline reply input */}
-      {replyOpen && (
-        <div className="mt-3 flex gap-2 animate-fade-in">
-          <input
-            autoFocus
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendReply()}
-            placeholder="Write something gentle…"
-            className="flex-1 text-[13px] px-3 py-2 outline-none"
-            style={{ background: "#F0F4FC", borderRadius: 10, color: "#2A3A4A" }}
-          />
-          <button
-            onClick={sendReply}
-            disabled={!replyText.trim() || sending}
-            className="px-4 py-2 text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-40"
-            style={{ background: "#5A7AAA", color: "white", borderRadius: 10 }}
-          >
-            {sending ? "…" : "Send"}
-          </button>
-        </div>
-      )}
     </div>
+
+    {/* Full-screen reply sheet */}
+    {replyOpen && (
+      <ReplySheetOverlay
+        bottle={bottle}
+        userId={userId}
+        recipientRecordId={recipientRecordId}
+        isSeed={isSeed}
+        onClose={() => setReplyOpen(false)}
+        onSent={() => {
+          setReplySent(true);
+          onReplySent?.(recipientRecordId ?? bottle.id);
+        }}
+      />
+    )}
+    </>
   );
 }
 
@@ -1121,7 +1270,7 @@ let _replies: BottleReply[] = SEED_REPLIES;
 // ─── DriftSeaScreen ───────────────────────────────────────────────────
 
 export default function DriftSeaScreen({ isGuest = true, userId }: { isGuest?: boolean; userId?: string }) {
-  const [activeTab, setActiveTab] = useState<"my" | "received">("my");
+  const [activeTab, setActiveTab] = useState<"my" | "received">("received");
   const [driftOpen, setDriftOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [repliesOpen, setRepliesOpen] = useState(false);
@@ -1337,23 +1486,31 @@ export default function DriftSeaScreen({ isGuest = true, userId }: { isGuest?: b
           {/* ── Bottles Received ── */}
           {activeTab === "received" && (
             <div className="flex flex-col gap-3">
-              {isGuest ? RECEIVED_BOTTLES.map((b) => (
-                <ReceivedBottleCard key={b.id} bottle={b} />
-              )) : receivedBottles.length === 0 ? (
-                <div className="flex items-center justify-center py-16 px-6 text-center">
-                  <p className="text-[14px] leading-relaxed" style={{ color: "rgba(60,70,120,0.7)" }}>
-                    No bottles received yet. Check back later.
-                  </p>
-                </div>
-              ) : receivedBottles.map((b) => (
-                <ReceivedBottleCard
-                  key={b.id}
-                  bottle={b}
-                  userId={userId}
-                  recipientRecordId={b.recipientRecordId}
-                  onReplySent={(id) => setReceivedBottles((prev) => prev.map((r) => r.id === id ? { ...r, replied: true } : r))}
-                />
-              ))}
+              {(isGuest || receivedBottles.length === 0) && (
+                <p className="text-[11px] text-center pb-0.5" style={{ color: "#9AAAB8" }}>
+                  {isGuest ? "Sample bottles from the ocean" : "From the ocean — reply while you wait for your matches"}
+                </p>
+              )}
+              {(isGuest
+                ? SEED_BOTTLES
+                : receivedBottles.length > 0
+                  ? receivedBottles
+                  : SEED_BOTTLES
+              ).map((b) => {
+                const real = !isGuest && receivedBottles.length > 0;
+                const rb = b as ReceivedBottle & { recipientRecordId?: string; replied?: boolean; resonated?: boolean };
+                return (
+                  <ReceivedBottleCard
+                    key={b.id}
+                    bottle={b}
+                    userId={real ? userId : undefined}
+                    recipientRecordId={rb.recipientRecordId}
+                    initialHearted={rb.resonated ?? false}
+                    isSeed={!real}
+                    onReplySent={(id) => setReceivedBottles((prev) => prev.map((r) => r.id === id ? { ...r, replied: true } : r))}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

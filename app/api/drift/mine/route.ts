@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     .from("drift_bottles")
     .select(`
       id, content, feeling_tags, topic_tags, created_at,
-      drift_recipients ( reply_text, reply_read )
+      drift_recipients ( reply_text, reply_read, resonated_at )
     `)
     .eq("sender_id", userId)
     .order("created_at", { ascending: false });
@@ -21,15 +21,18 @@ export async function GET(request: Request) {
   }
 
   const bottles = (data ?? []).map((b) => {
-    const recipient = Array.isArray(b.drift_recipients) ? b.drift_recipients[0] : b.drift_recipients;
+    const recipients = Array.isArray(b.drift_recipients) ? b.drift_recipients : (b.drift_recipients ? [b.drift_recipients] : []);
+    const firstRecipient = recipients[0];
+    const resonanceCount = recipients.filter((r: { resonated_at: string | null }) => !!r.resonated_at).length;
     return {
       id: b.id,
       content: b.content,
       feeling_tags: b.feeling_tags,
       topic_tags: b.topic_tags,
       created_at: b.created_at,
-      replied: !!recipient?.reply_text,
-      reply_read: recipient?.reply_read ?? true,
+      replied: !!firstRecipient?.reply_text,
+      reply_read: firstRecipient?.reply_read ?? true,
+      resonance_count: resonanceCount,
     };
   });
 
