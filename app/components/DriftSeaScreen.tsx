@@ -554,7 +554,21 @@ function DriftBottleScreen({
   return (
     <div className="absolute inset-0 flex flex-col animate-fade-in" style={{ background: PAGE_BG, zIndex: 50 }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-16 pb-2 flex-shrink-0">
+      <div className="relative flex items-center gap-3 px-5 pt-16 pb-2 flex-shrink-0 overflow-hidden">
+        <img
+          src="/lighthouse.png"
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            right: -10,
+            top: -4,
+            width: 130,
+            opacity: 0.9,
+            pointerEvents: "none",
+            userSelect: "none",
+          }}
+        />
         <button
           onClick={onBack}
           className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -1043,7 +1057,7 @@ function ReplySheetOverlay({
   return (
     <div
       className="absolute inset-0 z-50 flex flex-col animate-fade-in"
-      style={{ background: "rgba(210,220,236,0.97)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
+      style={{ background: PAGE_BG }}
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 flex-shrink-0">
@@ -1061,8 +1075,8 @@ function ReplySheetOverlay({
 
       <div className="flex-1 overflow-y-auto px-4 pb-8 flex flex-col gap-4">
         {/* Quote */}
-        <div className="p-4 rounded-2xl" style={{ background: "rgba(255,255,255,0.60)" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#9AAAB8" }}>Their bottle</p>
+        <div className="p-4" style={{ background: "rgba(255,255,255,0.78)", borderRadius: 18, boxShadow: "0 2px 12px rgba(80,100,160,0.07)" }}>
+          <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#9AAAB8" }}>A bottle from the ocean</p>
           <p className="text-[13px] leading-relaxed italic" style={{ color: "#4A5A6A" }}>
             "{bottle.content.slice(0, 120)}{bottle.content.length > 120 ? "…" : ""}"
           </p>
@@ -1080,7 +1094,7 @@ function ReplySheetOverlay({
             {REPLY_STARTERS.map((s) => (
               <button
                 key={s}
-                onClick={() => setText((t) => t ? t : s)}
+                onClick={() => setText(s)}
                 className="text-[12px] px-3 py-1.5 rounded-full transition-all active:scale-95"
                 style={{ background: "rgba(255,255,255,0.80)", color: "#4A6A8A", border: "1px solid rgba(100,140,180,0.18)" }}
               >
@@ -1091,7 +1105,7 @@ function ReplySheetOverlay({
         </div>
 
         {/* Textarea */}
-        <div className="p-4 rounded-2xl" style={{ background: "rgba(255,255,255,0.82)" }}>
+        <div className="p-4" style={{ background: "rgba(255,255,255,0.82)", borderRadius: 18, boxShadow: "0 2px 12px rgba(80,100,160,0.07)" }}>
           <textarea
             autoFocus
             value={text}
