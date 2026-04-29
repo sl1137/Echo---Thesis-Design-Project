@@ -30,7 +30,8 @@ export async function GET(request: Request) {
   const { count } = await supabase
     .from("sessions")
     .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .gte("created_at", weekStart);
 
   if ((count ?? 0) < 3) return NextResponse.json({ insufficient: true, sessionCount: count ?? 0 });
 

@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     .from("drift_bottles")
     .select(`
       id, content, feeling_tags, topic_tags, created_at,
-      drift_recipients ( reply_text, reply_read, resonated_at )
+      drift_recipients ( reply_text, reply_read, resonated_at, replied_at )
     `)
     .eq("sender_id", userId)
     .order("created_at", { ascending: false });
@@ -31,6 +31,8 @@ export async function GET(request: Request) {
       topic_tags: b.topic_tags,
       created_at: b.created_at,
       replied: !!firstRecipient?.reply_text,
+      reply_text: firstRecipient?.reply_text ?? null,
+      replied_at: firstRecipient?.replied_at ?? null,
       reply_read: firstRecipient?.reply_read ?? true,
       resonance_count: resonanceCount,
     };

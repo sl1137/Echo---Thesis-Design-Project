@@ -59,6 +59,8 @@ interface ApiBottle {
   topic_tags: string[];
   created_at: string;
   replied: boolean;
+  reply_text?: string | null;
+  replied_at?: string | null;
   reply_read: boolean;
   resonance_count?: number;
 }
@@ -88,7 +90,9 @@ function apiBottleToEntry(b: ApiBottle): BottleEntry {
     content: b.content,
     emotions: b.feeling_tags,
     topics: b.topic_tags,
-    replies: b.replied ? [{ id: "replied", date: "", text: "Someone replied to your bottle.", from: "anonymous" }] : [],
+    replies: b.replied && b.reply_text
+      ? [{ id: "replied", date: b.replied_at ? new Date(b.replied_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "", text: b.reply_text, from: "anonymous" as const }]
+      : [],
     resonanceCount: b.resonance_count ?? 0,
   };
 }
