@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import EnterScreen from "./components/EnterScreen";
+import DemoSplashScreen from "./components/DemoSplashScreen";
 import LoginScreen from "./components/LoginScreen";
 import IslandScreen from "./components/IslandScreen";
 import DriftSeaScreen from "./components/DriftSeaScreen";
@@ -12,7 +13,7 @@ import BottomNav, { type Tab } from "./components/BottomNav";
 
 import SettingsScreen from "./components/SettingsScreen";
 
-type Screen = "enter" | "login" | "main";
+type Screen = "splash" | "enter" | "login" | "main";
 type SuggestedPractice = { practiceId: string; categoryId: string };
 
 export interface CardData {
@@ -35,7 +36,7 @@ export interface SessionRecord {
 }
 
 export default function EchoApp() {
-  const [screen, setScreen] = useState<Screen>("enter");
+  const [screen, setScreen] = useState<Screen>("splash");
   const [activeTab, setActiveTab] = useState<Tab>("island");
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -83,6 +84,7 @@ export default function EchoApp() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  if (screen === "splash") return <DemoSplashScreen onContinue={() => setScreen("enter")} />;
   if (screen === "enter") return <EnterScreen onEnter={() => setScreen("login")} />;
   if (screen === "login") return <LoginScreen onLogin={(isGuest) => { setActiveTab("island"); if (isGuest) setGuestMode(true); setScreen("main"); }} />;
 
