@@ -553,8 +553,24 @@ function DriftBottleScreen({
 
   return (
     <div className="absolute inset-0 flex flex-col animate-fade-in" style={{ background: PAGE_BG, zIndex: 50 }}>
+      <img
+        src="/lighthouse.png"
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          right: 0,
+          top: 50,
+          width: 140,
+          mixBlendMode: "multiply",
+          opacity: 0.9,
+          pointerEvents: "none",
+          userSelect: "none",
+          zIndex: 0,
+        }}
+      />
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-16 pb-2 flex-shrink-0">
+      <div className="flex items-center gap-3 px-5 pt-16 pb-2 flex-shrink-0" style={{ position: "relative", zIndex: 1 }}>
         <button
           onClick={onBack}
           className="w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -572,24 +588,9 @@ function DriftBottleScreen({
 
         {/* Bottle card */}
         <div
-          className="mb-5 p-4 relative overflow-hidden"
+          className="mb-5 p-4"
           style={{ background: "rgba(255,255,255,0.82)", borderRadius: 18, boxShadow: "0 2px 14px rgba(80,100,160,0.07)" }}
         >
-          <img
-            src="/lighthouse.png"
-            alt=""
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              right: 0,
-              top: 0,
-              width: 110,
-              mixBlendMode: "multiply",
-              opacity: 0.85,
-              pointerEvents: "none",
-              userSelect: "none",
-            }}
-          />
           <p className="text-[13px] font-semibold mb-3" style={{ color: "#4A5A6A" }}>Your bottle</p>
           <textarea
             value={content}
