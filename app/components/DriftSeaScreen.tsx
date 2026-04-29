@@ -565,6 +565,7 @@ function DriftBottleScreen({
             top: -4,
             width: 130,
             opacity: 0.9,
+            mixBlendMode: "multiply",
             pointerEvents: "none",
             userSelect: "none",
           }}
