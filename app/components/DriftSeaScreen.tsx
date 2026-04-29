@@ -1308,15 +1308,26 @@ export default function DriftSeaScreen({ isGuest = true, userId }: { isGuest?: b
       fetch(`/api/drift/mine?userId=${userId}`).then((r) => r.json()),
       fetch(`/api/drift/received?userId=${userId}`).then((r) => r.json()),
       fetch(`/api/drift/replies?userId=${userId}`).then((r) => r.json()),
-    ]).then(([mine, received, repliesData]) => {
+    ]).then(async ([mine, received, repliesData]) => {
       if (mine.bottles) {
         _setMyBottles(mine.bottles.map(apiBottleToEntry));
       }
-      if (received.bottles) {
-        setReceivedBottles(received.bottles.map(apiReceivedToBottle));
-      }
       if (repliesData.replies) {
         _setReplies(repliesData.replies.map(apiReplyToBottleReply));
+      }
+      // If no received bottles, try to assign orphaned bottles from other users
+      const receivedList = received.bottles ?? [];
+      if (receivedList.length === 0) {
+        await fetch("/api/drift/init-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+        }).catch(() => {});
+        // Re-fetch received after potential assignment
+        const refreshed = await fetch(`/api/drift/received?userId=${userId}`).then((r) => r.json()).catch(() => ({}));
+        setReceivedBottles((refreshed.bottles ?? []).map(apiReceivedToBottle));
+      } else {
+        setReceivedBottles(receivedList.map(apiReceivedToBottle));
       }
     }).catch(() => {});
   }, [userId]);
