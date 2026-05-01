@@ -2,7 +2,7 @@
 
 import QRCode from "react-qr-code";
 
-const DEMO_URL = "https://echo-thesis-design-project.vercel.app/";
+const DEMO_URL = "https://echo-nine-jet.vercel.app/";
 
 export default function QRPage() {
   return (
