@@ -719,29 +719,26 @@ function VoiceFullMode({
           {isActive && (
             <>
               <div
-                className="absolute animate-ripple-1 pointer-events-none"
+                className="absolute rounded-full animate-ripple-1 pointer-events-none"
                 style={{
-                  width: 220,
-                  height: 310,
-                  borderRadius: 999,
+                  width: 320,
+                  height: 320,
                   background: "rgba(160,185,255,0.18)",
                 }}
               />
               <div
-                className="absolute animate-ripple-2 pointer-events-none"
+                className="absolute rounded-full animate-ripple-2 pointer-events-none"
                 style={{
-                  width: 220,
-                  height: 310,
-                  borderRadius: 999,
+                  width: 320,
+                  height: 320,
                   background: "rgba(160,185,255,0.14)",
                 }}
               />
               <div
-                className="absolute animate-ripple-3 pointer-events-none"
+                className="absolute rounded-full animate-ripple-3 pointer-events-none"
                 style={{
-                  width: 220,
-                  height: 310,
-                  borderRadius: 999,
+                  width: 320,
+                  height: 320,
                   background: "rgba(160,185,255,0.10)",
                 }}
               />
