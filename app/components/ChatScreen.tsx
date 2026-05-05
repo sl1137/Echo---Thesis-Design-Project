@@ -713,18 +713,41 @@ function VoiceFullMode({
         className="absolute inset-0 flex flex-col items-center justify-center gap-6"
         style={{ bottom: 120 }}
       >
-        {/* Outer glow ring when active */}
+        {/* Ripple rings + orb */}
         <div className="relative flex items-center justify-center">
+          {/* Expanding oval ripples when active */}
           {isActive && (
-            <div
-              className="absolute rounded-full animate-breathe pointer-events-none"
-              style={{
-                width: 400,
-                height: 400,
-                background: "radial-gradient(circle, rgba(170,190,255,0.22) 0%, transparent 70%)",
-              }}
-            />
+            <>
+              <div
+                className="absolute animate-ripple-1 pointer-events-none"
+                style={{
+                  width: 220,
+                  height: 310,
+                  borderRadius: 999,
+                  background: "rgba(160,185,255,0.18)",
+                }}
+              />
+              <div
+                className="absolute animate-ripple-2 pointer-events-none"
+                style={{
+                  width: 220,
+                  height: 310,
+                  borderRadius: 999,
+                  background: "rgba(160,185,255,0.14)",
+                }}
+              />
+              <div
+                className="absolute animate-ripple-3 pointer-events-none"
+                style={{
+                  width: 220,
+                  height: 310,
+                  borderRadius: 999,
+                  background: "rgba(160,185,255,0.10)",
+                }}
+              />
+            </>
           )}
+          {/* Soft glow when connecting */}
           {isConnecting && (
             <div
               className="absolute rounded-full animate-breathe pointer-events-none"
