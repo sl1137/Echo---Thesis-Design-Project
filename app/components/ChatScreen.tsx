@@ -718,30 +718,23 @@ function VoiceFullMode({
           {/* Expanding oval ripples when active */}
           {isActive && (
             <>
-              <div
-                className="absolute rounded-full animate-ripple-1 pointer-events-none"
-                style={{
-                  width: 320,
-                  height: 320,
-                  background: "rgba(160,185,255,0.18)",
-                }}
-              />
-              <div
-                className="absolute rounded-full animate-ripple-2 pointer-events-none"
-                style={{
-                  width: 320,
-                  height: 320,
-                  background: "rgba(160,185,255,0.14)",
-                }}
-              />
-              <div
-                className="absolute rounded-full animate-ripple-3 pointer-events-none"
-                style={{
-                  width: 320,
-                  height: 320,
-                  background: "rgba(160,185,255,0.10)",
-                }}
-              />
+              {[
+                "animate-wave-1",
+                "animate-wave-2",
+                "animate-wave-3",
+                "animate-wave-4",
+              ].map((cls) => (
+                <div
+                  key={cls}
+                  className={`absolute rounded-full pointer-events-none ${cls}`}
+                  style={{
+                    width: 320,
+                    height: 320,
+                    border: "1.5px solid rgba(180,200,255,0.55)",
+                    background: "transparent",
+                  }}
+                />
+              ))}
             </>
           )}
           {/* Soft glow when connecting */}
