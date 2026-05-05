@@ -19,6 +19,7 @@ interface UseRealtimeVoiceOptions {
   onTranscript?: (role: "user" | "echo", text: string) => void;
   onTextDelta?: (delta: string) => void;
   onResponseStart?: () => void;
+  userId?: string;
 }
 
 interface UseRealtimeVoiceReturn {
@@ -134,7 +135,11 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
     try {
       console.log("[RealtimeVoice] Step 1: Fetching session token...");
       // Step 1: Get ephemeral session token from our server
-      const tokenRes = await fetch("/api/realtime-session", { method: "POST" });
+      const tokenRes = await fetch("/api/realtime-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: options?.userId }),
+      });
       if (!tokenRes.ok) {
         const errData = await tokenRes.json().catch(() => ({}));
         throw new Error(errData.error || "Failed to create session");

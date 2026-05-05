@@ -905,6 +905,7 @@ export default function ChatScreen({
       setLastEchoText(text);
       lastEchoTextRef.current = text;
       setStreamingText("");
+      maybeSuggestPractice(text);
     }
     setMessages((prev) => [
       ...prev,
@@ -926,7 +927,7 @@ export default function ChatScreen({
   }, []);
 
   const { status: voiceStatus, error: voiceError, connect: connectVoice, disconnect: disconnectVoice } =
-    useRealtimeVoice({ onTranscript: handleTranscript, onTextDelta: handleTextDelta, onResponseStart: handleResponseStart });
+    useRealtimeVoice({ onTranscript: handleTranscript, onTextDelta: handleTextDelta, onResponseStart: handleResponseStart, userId: authUserId || undefined });
 
   // Opening message
   const hasOpenedRef = useRef(false);
