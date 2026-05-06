@@ -27,6 +27,8 @@ interface UseRealtimeVoiceReturn {
   error: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
+  commitAudio: () => void;
+  isSpeaking: boolean;
   isConnected: boolean;
 }
 
@@ -34,8 +36,8 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Use refs for values that change frequently to avoid stale closures
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -43,7 +45,7 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
   const isConnectingRef = useRef(false);
   const hasConnectedRef = useRef(false);
 
-  // Keep callbacks in refs so the data channel handler always sees latest
+  // Keep callbacks and latest values in refs so closures always see current data
   const onTranscriptRef = useRef(options?.onTranscript);
   const onTextDeltaRef = useRef(options?.onTextDelta);
   const onResponseStartRef = useRef(options?.onResponseStart);
@@ -53,11 +55,9 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
     onResponseStartRef.current = options?.onResponseStart;
   }, [options?.onTranscript, options?.onTextDelta, options?.onResponseStart]);
 
-  // Cleanup function that ensures all resources are released
   const cleanup = useCallback(() => {
     console.log("[RealtimeVoice] Cleaning up resources...");
 
-    // Stop all microphone tracks
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => {
         track.stop();
@@ -66,44 +66,33 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
       streamRef.current = null;
     }
 
-    // Close data channel
     if (dataChannelRef.current) {
-      try {
-        dataChannelRef.current.close();
-      } catch (e) {
-        // Ignore errors on close
-      }
+      try { dataChannelRef.current.close(); } catch { /* ignore */ }
       dataChannelRef.current = null;
     }
 
-    // Remove audio element completely
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.srcObject = null;
-      audioRef.current.load(); // Reset the audio element
+      audioRef.current.load();
       audioRef.current = null;
       console.log("[RealtimeVoice] Audio element cleaned up");
     }
 
-    // Close peer connection
     if (pcRef.current) {
       pcRef.current.ontrack = null;
       pcRef.current.onconnectionstatechange = null;
       pcRef.current.onnegotiationneeded = null;
-
-      // Close all senders first
       pcRef.current.getSenders().forEach((sender) => {
-        if (sender.track) {
-          sender.track.stop();
-        }
+        if (sender.track) sender.track.stop();
       });
-
       pcRef.current.close();
       pcRef.current = null;
       console.log("[RealtimeVoice] Peer connection closed");
     }
 
     setIsConnected(false);
+    setIsSpeaking(false);
   }, []);
 
   const disconnect = useCallback(() => {
@@ -116,13 +105,11 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
   }, [cleanup]);
 
   const connect = useCallback(async () => {
-    // Prevent multiple simultaneous connection attempts
     if (isConnectingRef.current) {
       console.log("[RealtimeVoice] Already connecting, skipping...");
       return;
     }
 
-    // Clean up any existing connection first
     if (pcRef.current || streamRef.current) {
       console.log("[RealtimeVoice] Cleaning up existing connection before new connect");
       cleanup();
@@ -134,7 +121,6 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
 
     try {
       console.log("[RealtimeVoice] Step 1: Fetching session token...");
-      // Step 1: Get ephemeral session token from our server
       const tokenRes = await fetch("/api/realtime-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -146,56 +132,39 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
       }
       const sessionData = await tokenRes.json();
       const clientSecret = sessionData.client_secret?.value;
-      if (!clientSecret) {
-        throw new Error("No client secret returned from server");
-      }
+      if (!clientSecret) throw new Error("No client secret returned from server");
 
       console.log("[RealtimeVoice] Step 2: Requesting microphone access...");
-      // Step 2: Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        }
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       streamRef.current = stream;
       console.log("[RealtimeVoice] Microphone access granted");
 
-      // Step 3: Create WebRTC peer connection
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
-      // Step 4: Set up remote audio playback - SINGLE AUDIO PATH
-      // Only create ONE audio element and attach it to the peer connection
       const audio = new Audio();
       audio.autoplay = true;
       audio.volume = 1.0;
       audioRef.current = audio;
 
-      // CRITICAL: Only set ontrack ONCE. This is the ONLY audio output path.
       pc.ontrack = (event) => {
         console.log("[RealtimeVoice] Received remote audio track");
-        // Make absolutely sure we don't create multiple audio elements
-        if (audioRef.current) {
-          audioRef.current.srcObject = event.streams[0];
-        }
+        if (audioRef.current) audioRef.current.srcObject = event.streams[0];
       };
 
-      // Step 5: Add microphone track to peer connection (ONE sender)
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
         pc.addTrack(audioTrack, stream);
         console.log("[RealtimeVoice] Added local audio track");
       }
 
-      // Step 6: Create data channel (required by OpenAI Realtime)
       const dataChannel = pc.createDataChannel("oai-events");
       dataChannelRef.current = dataChannel;
 
       dataChannel.onopen = () => {
         console.log("[RealtimeVoice] Data channel opened");
-        // Configure VAD with tighter silence detection to reduce dead-air pauses
         dataChannel.send(JSON.stringify({
           type: "session.update",
           session: {
@@ -207,34 +176,30 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
             },
           },
         }));
+
       };
 
       dataChannel.onerror = (err) => {
         console.error("[RealtimeVoice] Data channel error:", err);
       };
 
-      // Step 6b: Parse transcript events from data channel
       dataChannel.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-
-          // New response starting — signal to cycle subtitle display
-          if (msg.type === "response.created") {
+          if (msg.type === "input_audio_buffer.speech_started") {
+            setIsSpeaking(true);
+          } else if (msg.type === "input_audio_buffer.speech_stopped") {
+            setIsSpeaking(false);
+          } else if (msg.type === "response.created") {
             onResponseStartRef.current?.();
-          }
-          // Streaming transcript delta — for real-time subtitle display
-          else if (msg.type === "response.audio_transcript.delta" && msg.delta) {
+          } else if (msg.type === "response.audio_transcript.delta" && msg.delta) {
             onTextDeltaRef.current?.(msg.delta);
-          }
-          // User speech transcript
-          else if (
+          } else if (
             msg.type === "conversation.item.input_audio_transcription.completed" &&
             msg.transcript?.trim()
           ) {
             onTranscriptRef.current?.("user", msg.transcript.trim());
-          }
-          // Echo full transcript (for message history)
-          else if (
+          } else if (
             msg.type === "response.audio_transcript.done" &&
             msg.transcript?.trim()
           ) {
@@ -245,26 +210,21 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
         }
       };
 
-      // Step 7: Create offer and set local description
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       console.log("[RealtimeVoice] Created and set local offer");
 
-      // Step 8: Send offer to OpenAI Realtime and get answer
       const model = sessionData.model || "gpt-4o-realtime-preview-2024-12-17";
       console.log("[RealtimeVoice] Step 8: Connecting to OpenAI Realtime...");
 
-      const sdpRes = await fetch(
-        `https://api.openai.com/v1/realtime?model=${model}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${clientSecret}`,
-            "Content-Type": "application/sdp",
-          },
-          body: offer.sdp,
-        }
-      );
+      const sdpRes = await fetch(`https://api.openai.com/v1/realtime?model=${model}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${clientSecret}`,
+          "Content-Type": "application/sdp",
+        },
+        body: offer.sdp,
+      });
 
       if (!sdpRes.ok) {
         const errorText = await sdpRes.text();
@@ -273,13 +233,9 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
       }
 
       const answerSdp = await sdpRes.text();
-      await pc.setRemoteDescription({
-        type: "answer",
-        sdp: answerSdp,
-      });
+      await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
       console.log("[RealtimeVoice] Set remote description");
 
-      // Step 9: Monitor connection state
       pc.onconnectionstatechange = () => {
         const newState = pc.connectionState;
         console.log("[RealtimeVoice] Connection state changed:", newState);
@@ -289,22 +245,14 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
           setIsConnected(true);
           isConnectingRef.current = false;
           hasConnectedRef.current = true;
-        } else if (
-          newState === "disconnected" ||
-          newState === "failed" ||
-          newState === "closed"
-        ) {
+        } else if (newState === "disconnected" || newState === "failed" || newState === "closed") {
           setStatus("idle");
           setIsConnected(false);
           isConnectingRef.current = false;
-
-          if (newState === "failed") {
-            setError("Connection failed");
-          }
+          if (newState === "failed") setError("Connection failed");
         }
       };
 
-      // Handle case where connection is already established
       if (pc.connectionState === "connected") {
         setStatus("connected");
         setIsConnected(true);
@@ -320,7 +268,15 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
     }
   }, [cleanup]);
 
-  // Cleanup on unmount
+  // Kept for potential future use (e.g. force-interrupt)
+  const commitAudio = useCallback(() => {
+    const dc = dataChannelRef.current;
+    if (!dc || dc.readyState !== "open") return;
+    dc.send(JSON.stringify({ type: "response.cancel" }));
+    dc.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+    dc.send(JSON.stringify({ type: "response.create" }));
+  }, []);
+
   useEffect(() => {
     return () => {
       console.log("[RealtimeVoice] Component unmounting, cleaning up");
@@ -328,5 +284,5 @@ export function useRealtimeVoice(options?: UseRealtimeVoiceOptions): UseRealtime
     };
   }, [cleanup]);
 
-  return { status, error, connect, disconnect, isConnected };
+  return { status, error, connect, disconnect, commitAudio, isSpeaking, isConnected };
 }

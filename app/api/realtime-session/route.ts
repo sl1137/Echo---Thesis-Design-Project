@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { REALTIME_VOICE_SYSTEM } from "@/prompts";
 import { getMemoryContext } from "@/lib/memory";
 
+// Prepended before all other instructions — model reads this first
+const LANG_OVERRIDE = `CRITICAL LANGUAGE RULE (overrides everything below):
+You MUST speak English by default. Your very first words MUST be in English.
+Only switch to Chinese if the user's first spoken words are in Chinese.
+Never start a conversation in Chinese. Never mix languages in one response.`;
+
 export async function POST(request: Request) {
   const { userId } = await request.json().catch(() => ({}));
   const apiKey = process.env.OPENAI_API_KEY;
@@ -13,9 +19,12 @@ export async function POST(request: Request) {
 
   try {
     const memoryContext = userId ? await getMemoryContext(userId) : "";
-    const instructions = memoryContext
-      ? `${REALTIME_VOICE_SYSTEM}\n\n${memoryContext}`
-      : REALTIME_VOICE_SYSTEM;
+
+    const memorySection = memoryContext
+      ? `\n\n## User Memory & Context\nThe following is what you know about this user from previous conversations. Use it naturally — reference it the way a friend who remembers would, without announcing that you have notes.\n${memoryContext}`
+      : "";
+
+    const instructions = `${LANG_OVERRIDE}\n\n${REALTIME_VOICE_SYSTEM}${memorySection}`;
 
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",

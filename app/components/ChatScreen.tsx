@@ -5,7 +5,7 @@ import { useRealtimeVoice, VoiceStatus } from "../hooks/useRealtimeVoice";
 import type { CardData, ChatMessage as Message, SessionRecord } from "../page";
 import { PracticeSessionOverlay, CATEGORIES } from "./IslandScreen";
 
-type ChatMode = "text" | "voice-input" | "voice-full";
+type ChatMode = "text" | "voice-full";
 
 const PAGE_BG = "radial-gradient(ellipse at 50% 12%, #dde5ff 0%, #e9ecfc 45%, #eeeaf8 100%)";
 const VOICE_BG_IMAGE = "url('/voice-bg.png')";
@@ -272,13 +272,64 @@ function Orb({
   );
 }
 
+// ─── Insight Forming Sheet ────────────────────────────────────────────
+function InsightFormingSheet({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      className="absolute inset-0 z-50 flex flex-col justify-end animate-fade-in"
+      style={{ background: "rgba(26,26,62,0.28)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+      onClick={onDismiss}
+    >
+      <div
+        className="animate-slide-up px-6 pt-5 pb-10"
+        style={{ background: "#F5F3F8", borderRadius: "28px 28px 0 0" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: "rgba(26,26,62,0.15)" }} />
+
+        <div className="flex justify-center mb-5">
+          <div
+            className="w-20 h-20 flex items-center justify-center"
+            style={{ borderRadius: "50%", border: "3px solid rgba(120,90,200,0.2)" }}
+          >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,62,0.45)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+              <path d="M11 8v3l2 2" />
+            </svg>
+          </div>
+        </div>
+
+        <p className="text-center text-[20px] font-bold mb-2" style={{ color: "#1a1a3e" }}>
+          Your insights are forming
+        </p>
+        <p className="text-center text-[14px] leading-relaxed mb-7" style={{ color: "rgba(26,26,62,0.5)" }}>
+          Echo just needs a little more context from this conversation before it can reflect something back to you.
+        </p>
+
+        <button
+          onClick={onDismiss}
+          className="w-full py-4 rounded-2xl text-[16px] font-semibold transition-all active:scale-[0.98]"
+          style={{ background: "rgba(120,90,200,0.85)", color: "white" }}
+        >
+          Continue talking
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Chat Header ──────────────────────────────────────────────────────
 function ChatHeader({
   onBack,
   isEnding,
+  onInsight,
+  insightReady,
 }: {
   onBack: () => void;
   isEnding: boolean;
+  onInsight: () => void;
+  insightReady: boolean;
 }) {
   return (
     <header className="relative flex items-center justify-between px-4 pt-16 pb-3 flex-shrink-0">
@@ -313,8 +364,26 @@ function ChatHeader({
         Chat with Echo
       </span>
 
-      {/* Right placeholder to balance the back button width */}
-      <div className="w-9 h-9" aria-hidden />
+      {/* Sparkle / insight button */}
+      <button
+        onClick={onInsight}
+        className="w-9 h-9 flex items-center justify-center transition-all active:scale-90 z-10"
+        style={{
+          background: insightReady ? "rgba(120,90,200,0.15)" : "rgba(255,255,255,0.72)",
+          borderRadius: 12,
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          border: insightReady ? "1px solid rgba(120,90,200,0.3)" : "1px solid rgba(255,255,255,0.5)",
+        }}
+        aria-label="View insights"
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 2 L13.5 10.5 L22 12 L13.5 13.5 L12 22 L10.5 13.5 L2 12 L10.5 10.5 Z"
+            fill={insightReady ? "rgba(120,90,200,0.85)" : "rgba(26,26,62,0.35)"}
+          />
+        </svg>
+      </button>
     </header>
   );
 }
@@ -352,10 +421,12 @@ function ValidationCardOverlay({
   card,
   messages,
   onClose,
+  onContinueChat,
 }: {
   card: CardData;
   messages: Message[];
   onClose: () => void;
+  onContinueChat?: () => void;
 }) {
   const [tab, setTab] = useState<"analysis" | "transcript">("analysis");
 
@@ -393,7 +464,7 @@ function ValidationCardOverlay({
 
       {/* Tab content */}
       {tab === "analysis" && (
-        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
           <div className="p-4" style={{ background: CARD_QUOTE, borderRadius: 18, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
             <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: MUTED }}>You are seen</p>
             <p className="text-[15px] leading-relaxed font-medium" style={{ fontFamily: "var(--font-serif)", color: TEXT }}>"{card.validation_sentence}"</p>
@@ -420,7 +491,7 @@ function ValidationCardOverlay({
       )}
 
       {tab === "transcript" && (
-        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3 pt-1">
+        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3 pt-1">
           {messages.length === 0 ? (
             <p className="text-[13px] text-center mt-8" style={{ color: MUTED }}>No transcript recorded</p>
           ) : messages.map((m) => (
@@ -433,6 +504,19 @@ function ValidationCardOverlay({
               }}>{m.text}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Continue chat button — only shown when triggered mid-chat */}
+      {onContinueChat && (
+        <div className="flex-shrink-0 px-4 pb-10 pt-3">
+          <button
+            onClick={onContinueChat}
+            className="w-full py-4 rounded-2xl text-[16px] font-semibold transition-all active:scale-[0.98]"
+            style={{ background: "rgba(120,90,200,0.85)", color: "white" }}
+          >
+            Continue chat
+          </button>
         </div>
       )}
     </div>
@@ -512,12 +596,11 @@ function ChatMessages({
 
 // ─── Text Input Bar ───────────────────────────────────────────────────
 function TextInputBar({
-  value, onChange, onSend, onSwitchToVoiceInput, onSwitchToVoiceFull, isLoading,
+  value, onChange, onSend, onSwitchToVoiceFull, isLoading,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
-  onSwitchToVoiceInput: () => void;
   onSwitchToVoiceFull: () => void;
   isLoading: boolean;
 }) {
@@ -558,17 +641,17 @@ function TextInputBar({
           className="flex-1 bg-transparent text-[15px] outline-none resize-none"
           style={{ color: "#1a1a3e", lineHeight: "36px", maxHeight: 120 }}
         />
-        {/* Mic → voice-input */}
+        {/* Send button */}
         <button
-          onClick={onSwitchToVoiceInput}
-          className="w-9 h-9 flex items-center justify-center flex-shrink-0 transition-all active:scale-90"
+          onClick={onSend}
+          disabled={!value.trim() || isLoading}
+          className="w-9 h-9 flex items-center justify-center flex-shrink-0 transition-all active:scale-90 disabled:opacity-30"
           style={{ background: "rgba(80,90,160,0.10)", borderRadius: "50%" }}
-          aria-label="Voice input"
+          aria-label="Send"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3a3a7a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-            <line x1="12" y1="19" x2="12" y2="22" />
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
           </svg>
         </button>
         {/* Waveform → voice-full */}
@@ -591,93 +674,43 @@ function TextInputBar({
   );
 }
 
-// ─── Waveform Bars ────────────────────────────────────────────────────
-// Matches image 6: 5 pill-shaped bars, bell-curve heights, dark color, animated
-function WaveformBars({ playing }: { playing: boolean }) {
+// ─── Voice Bars ────────────────────────────────────────────────────────
+// speaking=false → 5 small static dots; speaking=true → animated bars
+function VoiceBars({ speaking }: { speaking: boolean }) {
   const bars = [
-    { h: 40,  delay: "0.00s" },
-    { h: 72,  delay: "0.15s" },
-    { h: 100, delay: "0.30s" },
-    { h: 72,  delay: "0.45s" },
-    { h: 40,  delay: "0.60s" },
+    { h: 24, delay: "0.00s" },
+    { h: 40, delay: "0.15s" },
+    { h: 56, delay: "0.30s" },
+    { h: 40, delay: "0.45s" },
+    { h: 24, delay: "0.60s" },
   ];
   return (
-    <div className="flex items-center gap-[10px]">
-      {bars.map((bar, i) => (
-        <div
-          key={i}
-          style={{
-            width: 16,
-            height: bar.h,
-            borderRadius: 999,
-            background: "#1a1a3e",
-            transformOrigin: "center",
-            animation: playing ? `voiceBar 1.1s ease-in-out ${bar.delay} infinite` : "none",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ─── Voice Input Mode ─────────────────────────────────────────────────
-function VoiceInputMode({
-  isRecording,
-  onStop,
-  messages,
-}: {
-  isRecording: boolean;
-  onStop: () => void;
-  messages: Message[];
-}) {
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-3 space-y-3">
-        {messages.map((msg) => <ChatBubble key={msg.id} message={msg} />)}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Waveform — sits between messages and bottom bar, no visible divider */}
-      <div className="flex-shrink-0 flex items-center justify-center" style={{ height: 140 }}>
-        <WaveformBars playing={isRecording} />
-      </div>
-
-      {/* Bottom bar */}
-      <div className="flex-shrink-0 px-4 pb-8">
-        <div
-          className="flex items-center gap-3 px-4"
-          style={{
-            background: "rgba(255,255,255,0.82)",
-            borderRadius: 24,
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            boxShadow: "0 2px 16px rgba(100,120,220,0.10)",
-            height: 52,
-          }}
-        >
-          <span className="flex-1 text-[15px] select-none" style={{ color: "rgba(26,26,62,0.45)" }}>
-            {isRecording ? "Recording..." : "Generating transcript..."}
-          </span>
-          {/* Stop button */}
-          <button
-            onClick={onStop}
-            className="w-9 h-9 flex items-center justify-center flex-shrink-0 transition-all active:scale-90"
-            style={{ background: "#1a1a3e", borderRadius: "50%" }}
-            aria-label="Stop recording"
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12">
-              <rect x="0" y="0" width="12" height="12" rx="2" fill="white" />
-            </svg>
-          </button>
-        </div>
-      </div>
+    <div className="flex items-center gap-[9px]" style={{ height: 56 }}>
+      {bars.map((bar, i) =>
+        speaking ? (
+          <div
+            key={i}
+            style={{
+              width: 8,
+              height: bar.h,
+              borderRadius: 999,
+              background: "rgba(26,26,62,0.70)",
+              transformOrigin: "center",
+              animation: `voiceBar 1.1s ease-in-out ${bar.delay} infinite`,
+            }}
+          />
+        ) : (
+          <div
+            key={i}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "rgba(26,26,62,0.28)",
+            }}
+          />
+        )
+      )}
     </div>
   );
 }
@@ -686,21 +719,13 @@ function VoiceInputMode({
 function VoiceFullMode({
   status,
   error,
-  onConnect,
-  onDisconnect,
+  isSpeaking,
   onSwitchToText,
-  lastEchoText,
-  streamingText,
-  prevEchoText,
 }: {
   status: VoiceStatus;
   error: string | null;
-  onConnect: () => void;
-  onDisconnect: () => void;
+  isSpeaking: boolean;
   onSwitchToText: () => void;
-  lastEchoText: string;
-  streamingText: string;
-  prevEchoText: string;
 }) {
   const isActive = status === "connected";
   const isConnecting = status === "connecting";
@@ -758,56 +783,26 @@ function VoiceFullMode({
           <Orb size={320} live glow={isActive} />
         </div>
 
-        {/* Echo subtitle — two-layer animation */}
-        <div
-          className="relative text-center px-8"
-          style={{ width: 300, minHeight: 60 }}
-        >
-          {/* Previous text — floats up and fades */}
-          {prevEchoText && !streamingText && (
-            <p
-              key={`prev-${prevEchoText.slice(0, 20)}`}
-              className="absolute inset-x-0 text-[15px] leading-relaxed text-center"
-              style={{
-                color: "#1a1a3e",
-                opacity: 0,
-                transform: "translateY(-24px)",
-                animation: "subtitleFadeUp 0.5s ease forwards",
-              }}
-            >
-              {prevEchoText}
+        {/* Bars + status label */}
+        <div className="flex flex-col items-center gap-3">
+          {isActive && <VoiceBars speaking={isSpeaking} />}
+          {isConnecting && (
+            <span className="w-5 h-5 border-2 border-white/40 border-t-[rgba(26,26,62,0.4)] rounded-full animate-spin" />
+          )}
+          {isActive && (
+            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, color: "rgba(26,26,62,0.38)", textTransform: "uppercase" }}>
+              {isSpeaking ? "Listening…" : "Echo is listening"}
             </p>
           )}
-          {/* Current streaming text — fades in */}
-          <p
-            key={`stream-${streamingText ? "streaming" : lastEchoText.slice(0, 20)}`}
-            className="text-[15px] leading-relaxed text-center"
-            style={{
-              color: "#1a1a3e",
-              opacity: (streamingText || lastEchoText) ? 1 : 0,
-              animation: streamingText ? "textPop 0.3s ease both" : undefined,
-              display: "-webkit-box",
-              WebkitLineClamp: 4,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {streamingText || lastEchoText || " "}
-          </p>
         </div>
 
         {error && <p className="text-[12px] text-red-400 text-center">{error}</p>}
       </div>
 
-      {/* Bottom controls — mic center aligned with screen center */}
-      {/* offset = chat(48) + gap(24) + half-mic(32) = 104px */}
-      <div
-        className="absolute flex items-center gap-6"
-        style={{ bottom: 48, left: "50%", transform: "translateX(-104px)" }}
-      >
-        {/* Chat icon button */}
+      {/* Bottom — keyboard button centered */}
+      <div className="absolute" style={{ bottom: 48, left: "50%", transform: "translateX(-50%)" }}>
         <button
-          onClick={() => { onDisconnect(); onSwitchToText(); }}
+          onClick={onSwitchToText}
           className="w-12 h-12 flex items-center justify-center transition-all active:scale-90"
           style={{
             background: "rgba(255,255,255,0.72)",
@@ -818,30 +813,19 @@ function VoiceFullMode({
           }}
           aria-label="Switch to text"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3a3a7a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-        </button>
-
-        {/* Mic button — large pink/mauve circle */}
-        <button
-          onClick={() => { if (isActive) onDisconnect(); else if (!isConnecting) onConnect(); }}
-          disabled={isConnecting}
-          className="w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-60"
-          style={{
-            background: isActive
-              ? "linear-gradient(135deg, #c8a8e0, #b090cc)"
-              : "rgba(200,175,225,0.75)",
-            boxShadow: isActive
-              ? "0 0 0 10px rgba(190,160,220,0.18), 0 4px 20px rgba(170,140,210,0.3)"
-              : "0 2px 12px rgba(170,140,210,0.22)",
-          }}
-          aria-label={isActive ? "Stop" : "Start voice"}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-            <line x1="12" y1="19" x2="12" y2="22" />
+          <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="#3a3a7a" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="0.8" y="0.8" width="18.4" height="12.4" rx="2.2" />
+            <rect x="2.8" y="2.8" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="5.8" y="2.8" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="8.8" y="2.8" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="11.8" y="2.8" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="14.8" y="2.8" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="2.8" y="6" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="5.8" y="6" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="8.8" y="6" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="11.8" y="6" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="14.8" y="6" width="1.8" height="1.8" rx="0.5" fill="#3a3a7a" stroke="none" />
+            <rect x="5" y="9.4" width="10" height="1.8" rx="0.9" fill="#3a3a7a" stroke="none" />
           </svg>
         </button>
       </div>
@@ -870,13 +854,11 @@ export default function ChatScreen({
   // One-shot bypass: when user explicitly asks for a method/practice, allow re-suggestion even if already suggested once
   const userAskedForPracticeRef = useRef(false);
   const [validationCard, setValidationCard] = useState<CardData | null>(null);
-  const [lastEchoText, setLastEchoText] = useState("");
-  const lastEchoTextRef = useRef("");
-  const [streamingText, setStreamingText] = useState("");
-  const [prevEchoText, setPrevEchoText] = useState("");
   const crisisShownRef = useRef(false); // prevent repeat triggers in same session
   const [practiceNudge, setPracticeNudge] = useState<{ practiceId: string; categoryId: string } | null>(null);
   const [activePractice, setActivePractice] = useState<{ practiceId: string; categoryId: string } | null>(null);
+  const [showFormingSheet, setShowFormingSheet] = useState(false);
+  const [validationCardFromMidchat, setValidationCardFromMidchat] = useState(false);
 
   // Stable user ID — prefer real auth userId, fall back to localStorage
   const userIdRef = useRef<string>(authUserId ?? "");
@@ -890,21 +872,13 @@ export default function ChatScreen({
     }
   }, [authUserId]);
 
-  // voice-input recording
-  const [isRecording, setIsRecording] = useState(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-
   // Voice-full hook
   const handleTranscript = useCallback((role: "user" | "echo", text: string) => {
     if (role === "user" && detectCrisis(text) && !crisisShownRef.current) {
       crisisShownRef.current = true;
       setMessages((prev) => [...prev, { id: `crisis-${Date.now()}`, role: "echo", text: CRISIS_CARD_MARKER }]);
     }
-    if (role === "echo") {
-      setLastEchoText(text);
-      lastEchoTextRef.current = text;
-      setStreamingText("");
+    if (role === "user") {
       maybeSuggestPractice(text);
     }
     setMessages((prev) => [
@@ -913,21 +887,18 @@ export default function ChatScreen({
     ]);
   }, []);
 
-  const handleTextDelta = useCallback((delta: string) => {
-    setStreamingText((prev) => prev + delta);
-  }, []);
+  const { status: voiceStatus, error: voiceError, connect: connectVoice, disconnect: disconnectVoice, isSpeaking } =
+    useRealtimeVoice({ onTranscript: handleTranscript, userId: authUserId || undefined });
 
-  const handleResponseStart = useCallback(() => {
-    setStreamingText((current) => {
-      setPrevEchoText(current || lastEchoTextRef.current);
-      return "";
-    });
-    setLastEchoText("");
-    lastEchoTextRef.current = "";
-  }, []);
-
-  const { status: voiceStatus, error: voiceError, connect: connectVoice, disconnect: disconnectVoice } =
-    useRealtimeVoice({ onTranscript: handleTranscript, onTextDelta: handleTextDelta, onResponseStart: handleResponseStart, userId: authUserId || undefined });
+  // Auto-connect when entering voice-full mode; disconnect on exit
+  useEffect(() => {
+    if (mode === "voice-full") {
+      connectVoice();
+    } else if (voiceStatus !== "idle") {
+      disconnectVoice();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   // Opening message
   const hasOpenedRef = useRef(false);
@@ -1079,7 +1050,7 @@ export default function ChatScreen({
           if (i < bubbles.length - 1) await new Promise((r) => setTimeout(r, 900));
         }
         // Match keywords across the user's ask + all Echo bubbles, so explicit asks are picked up
-        maybeSuggestPractice([userMsg.text, ...bubbles].join(" "));
+        maybeSuggestPractice(userMsg.text);
       })
       .catch(() => setMessages((prev) => [...prev, { id: `${Date.now()}`, role: "echo", text: "I'm here." }]))
       .finally(() => setIsLoading(false));
@@ -1088,21 +1059,38 @@ export default function ChatScreen({
   // Minimum user turns required to trigger validation card on back
   const VALIDATION_CARD_MIN_TURNS = 3;
 
-  // Back button: if conversation is meaningful, save + show validation card; otherwise just leave
+  // Sparkle / insight button — triggers card mid-chat (Continue chat shown)
+  function handleInsightTap() {
+    const userTurns = messages.filter((m) => m.role === "user").length;
+    if (userTurns >= VALIDATION_CARD_MIN_TURNS) {
+      setValidationCardFromMidchat(true);
+      handleEndChat();
+    } else {
+      setShowFormingSheet(true);
+    }
+  }
+
+  // Back button — triggers card as exit (no Continue chat)
   function handleBack() {
     if (isEnding) return;
     const userTurns = messages.filter((m) => m.role === "user").length;
     if (userTurns >= VALIDATION_CARD_MIN_TURNS) {
-      handleEndChat(); // generates card; ValidationCardOverlay's onClose triggers onBack
+      setValidationCardFromMidchat(false);
+      handleEndChat();
     } else {
       onBack();
     }
   }
 
+  function handleContinueChat() {
+    setValidationCard(null);
+    setValidationCardFromMidchat(false);
+    if (mode === "voice-full") connectVoice();
+  }
+
   // End chat
   async function handleEndChat() {
     if (isEnding) return;
-    if (mode === "voice-input") stopRecording();
     if (mode === "voice-full") disconnectVoice();
     setIsEnding(true);
     try {
@@ -1148,51 +1136,6 @@ export default function ChatScreen({
     }
   }
 
-  // Voice-input recording
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-      recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        if (blob.size < 500) { setMode("text"); return; }
-        setIsLoading(true);
-        try {
-          const form = new FormData();
-          form.append("audio", blob, "recording.webm");
-          const res = await fetch("/api/transcribe", { method: "POST", body: form });
-          const { text } = await res.json();
-          if (!text?.trim()) { setMode("text"); return; }
-          const userMsg: Message = { id: Date.now().toString(), role: "user", text: text.trim() };
-          setMessages((prev) => [...prev, userMsg]);
-          setMode("text");
-          const bubbles = await sendToEcho(text.trim());
-          const ts = Date.now();
-          bubbles.forEach((t2, i) => setMessages((prev) => [...prev, { id: `${ts + i}`, role: "echo", text: t2 }]));
-        } catch {
-          setMode("text");
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      recorder.start();
-      recorderRef.current = recorder;
-      setIsRecording(true);
-    } catch {
-      setMode("text");
-    }
-  }
-
-  function stopRecording() {
-    if (recorderRef.current && recorderRef.current.state !== "inactive") {
-      recorderRef.current.stop();
-    }
-    setIsRecording(false);
-  }
-
   return (
     <div
       className="flex flex-col h-dvh max-w-md mx-auto overflow-hidden relative"
@@ -1205,11 +1148,21 @@ export default function ChatScreen({
         <ValidationCardOverlay
           card={validationCard}
           messages={messages}
-          onClose={onBack}
+          onClose={validationCardFromMidchat ? handleContinueChat : onBack}
+          onContinueChat={validationCardFromMidchat ? handleContinueChat : undefined}
         />
       )}
 
-      <ChatHeader onBack={handleBack} isEnding={isEnding} />
+      {showFormingSheet && (
+        <InsightFormingSheet onDismiss={() => setShowFormingSheet(false)} />
+      )}
+
+      <ChatHeader
+        onBack={handleBack}
+        isEnding={isEnding}
+        onInsight={handleInsightTap}
+        insightReady={messages.filter((m) => m.role === "user").length >= VALIDATION_CARD_MIN_TURNS}
+      />
 
       {mode === "text" && (
         <>
@@ -1248,32 +1201,35 @@ export default function ChatScreen({
             value={input}
             onChange={setInput}
             onSend={handleSend}
-            onSwitchToVoiceInput={() => { setMode("voice-input"); startRecording(); }}
             onSwitchToVoiceFull={() => setMode("voice-full")}
             isLoading={isLoading}
           />
         </>
       )}
 
-      {mode === "voice-input" && (
-        <VoiceInputMode
-          isRecording={isRecording}
-          onStop={() => { stopRecording(); setMode("text"); }}
-          messages={messages}
-        />
-      )}
-
       {mode === "voice-full" && (
         <VoiceFullMode
           status={voiceStatus}
           error={voiceError}
-          onConnect={connectVoice}
-          onDisconnect={disconnectVoice}
-          onSwitchToText={() => { disconnectVoice(); setMode("text"); }}
-          lastEchoText={lastEchoText}
-          streamingText={streamingText}
-          prevEchoText={prevEchoText}
+          isSpeaking={isSpeaking}
+          onSwitchToText={() => setMode("text")}
         />
+      )}
+
+      {/* Practice nudge overlay — shown in voice mode (in text mode it renders inside ChatMessages) */}
+      {mode === "voice-full" && practiceNudge && (
+        <div className="absolute left-0 right-0 z-40 px-0" style={{ bottom: 120 }}>
+          <PracticeNudge
+            practiceId={practiceNudge.practiceId}
+            onAccept={() => {
+              setActivePractice(practiceNudge);
+              setPracticeNudge(null);
+            }}
+            onLater={() => {
+              setPracticeNudge(null);
+            }}
+          />
+        </div>
       )}
 
       {activePractice && (() => {
