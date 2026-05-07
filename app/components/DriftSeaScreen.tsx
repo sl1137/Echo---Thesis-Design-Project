@@ -1423,49 +1423,50 @@ export default function DriftSeaScreen({ isGuest = true, userId }: { isGuest?: b
           {/* ── Drift a bottle card ── */}
           <button
             onClick={() => setDriftOpen(true)}
-            className="w-full mb-6 transition-all active:scale-[0.98]"
+            className="w-full mb-6 transition-all active:scale-[0.98] flex flex-col items-start justify-end text-left"
             style={{
-              backgroundImage: "url('/drift-card-bg.png')",
-              backgroundSize: "cover",
+              backgroundImage: "url('/drift-bottle-card-bg.png')",
+              backgroundSize: "115%",
               backgroundPosition: "center",
               borderRadius: 20,
-              boxShadow: "0 2px 14px rgba(80,100,160,0.08)",
+              boxShadow: "0 2px 20px rgba(80,100,160,0.13)",
               padding: "24px 16px",
+              overflow: "hidden",
+              minHeight: 190,
             }}
           >
-            <div className="flex flex-col items-center">
-              {/* Concentric rings + bottle icon */}
-              <div className="relative flex items-center justify-center mb-3" style={{ width: 110, height: 110 }}>
-                {/* Outer ring */}
-                <div style={{ position: "absolute", width: 110, height: 110, borderRadius: "50%", border: "1.2px solid rgba(100,130,160,0.13)" }} />
-                {/* Middle ring */}
-                <div style={{ position: "absolute", width: 84, height: 84, borderRadius: "50%", border: "1.2px solid rgba(100,130,160,0.15)" }} />
-                {/* Inner filled circle */}
-                <div style={{ position: "absolute", width: 62, height: 62, borderRadius: "50%", background: "rgba(235,240,250,0.9)" }} />
-                {/* Bottle SVG — floats gently */}
-                <svg
-                  className="animate-float"
-                  width="28" height="36"
-                  viewBox="0 0 28 36"
-                  fill="none"
-                  stroke="#2C3E50"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{ position: "relative" }}
-                >
-                  {/* Cap — small rounded rect */}
-                  <rect x="10" y="1" width="8" height="4" rx="1.8" />
-                  {/* Short neck */}
-                  <path d="M10.5 5 L9 8 M17.5 5 L19 8" />
-                  {/* Body — tall oval (rx equals half-width for fully rounded sides) */}
-                  <rect x="5" y="8" width="18" height="24" rx="9" />
-                  {/* Two label lines */}
-                  <line x1="8.5" y1="18" x2="19.5" y2="18" strokeOpacity="0.4" />
-                  <line x1="8.5" y1="22" x2="19.5" y2="22" strokeOpacity="0.4" />
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center justify-center flex-shrink-0"
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.88)",
+                  border: "1px solid rgba(255,255,255,0.75)",
+                  boxShadow: "0 2px 8px rgba(80,100,160,0.12)",
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3A4A5A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
               </div>
-              <p className="text-[15px] font-semibold" style={{ color: "#2A3A4A" }}>Drift a bottle</p>
+
+              <div className="flex flex-col items-start">
+                <p
+                  className="text-[16px] font-bold"
+                  style={{ color: "#2A3A4A", textShadow: "0 1px 8px rgba(255,255,255,0.85)" }}
+                >
+                  Drift a bottle
+                </p>
+                <p
+                  className="text-[12.5px]"
+                  style={{ color: "#5A6A7A", textShadow: "0 1px 8px rgba(255,255,255,0.75)" }}
+                >
+                  Share what&apos;s on your mind
+                </p>
+              </div>
             </div>
           </button>
 

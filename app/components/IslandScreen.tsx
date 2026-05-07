@@ -1129,7 +1129,7 @@ export default function IslandScreen({ onStartChat, suggestedPractice, userId, u
                 <button
                   key={cat.id}
                   onClick={() => setOpenCategory(cat)}
-                  className="flex-1 w-full text-left flex flex-col items-start justify-center px-4 py-3.5 relative transition-all active:scale-[0.98] overflow-hidden"
+                  className="flex-1 w-full text-left flex flex-col items-start px-4 py-3.5 relative transition-all active:scale-[0.98] overflow-hidden"
                   style={{
                     background: "rgba(255,255,255,0.72)",
                     borderRadius: 18,
