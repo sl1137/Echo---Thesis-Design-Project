@@ -18,8 +18,8 @@ export default function DemoSplashScreen({ onContinue }: DemoSplashScreenProps) 
             className="text-[30px] font-bold leading-tight"
             style={{
               fontFamily: "var(--font-serif)",
-              color: "var(--on_surface)",
-              textShadow: "0 2px 12px rgba(255,255,255,0.7)",
+              color: "rgba(255,255,255,0.98)",
+              textShadow: "0 2px 10px rgba(0,0,0,0.5)",
             }}
           >
             Echo
@@ -28,8 +28,8 @@ export default function DemoSplashScreen({ onContinue }: DemoSplashScreenProps) 
             className="mt-1 text-[14px]"
             style={{
               fontFamily: "var(--font-sans)",
-              color: "#6A7A8A",
-              textShadow: "0 1px 6px rgba(255,255,255,0.6)",
+              color: "rgba(255,255,255,0.92)",
+              textShadow: "0 1px 4px rgba(0,0,0,0.45)",
             }}
           >
             A prototype demo — emotional support for international grad students
