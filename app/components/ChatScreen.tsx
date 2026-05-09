@@ -987,6 +987,35 @@ export default function ChatScreen({
     if (!onSuggestPractice) return;
     if (suggestedRef.current && !wasAsked) return;
     const t = echoText.toLowerCase();
+
+    // Gate: only suggest a practice when the message carries some distress / struggle
+    // signal. Topic words alone (e.g. "graduate", "career") aren't enough — they can
+    // appear in neutral or positive contexts ("I'm graduating next week!"). The user
+    // bypassing via an explicit ask still works through the wasAsked flag.
+    const distressMarkers = [
+      // English
+      "anxi", "nervous", "panic", "stress", "overwhelm", "spiral", "tense",
+      "can't handle", "cant handle", "too much", "burnt out", "burn out",
+      "sad", "down", "lonely", "alone", "numb", "exhaust", "tired", "drain",
+      "cry", "cried", "hard", "struggl", "stuck", "lost", "fog", "frustrat",
+      "worried", "worry", "scared", "afraid", "hate", "hurt", "broken",
+      "empty", "hopeless", "don't know", "dunno", "unsure", "not sure",
+      "confus", "heavy", "low energy", "shut down", "fall apart", "crash",
+      "nightmare", "spiraling", "miss", "missed", "behind",
+      // Chinese
+      "焦虑", "紧张", "害怕", "担心", "心慌", "崩溃", "压力", "撑不住",
+      "受不了", "难过", "低落", "孤独", "累", "空", "哭", "烦", "乱",
+      "迷茫", "困惑", "说不清", "说不出", "不知道", "睡不着", "喘不过",
+      "透不过气", "心累", "疲", "无力", "麻木", "心烦",
+    ];
+    const hasDistress = distressMarkers.some((k) => t.includes(k));
+    if (!hasDistress && !wasAsked) {
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[practiceNudge] skipped: no distress signal");
+      }
+      return;
+    }
+
     let match: { practiceId: string; categoryId: string } | null = null;
     if (t.includes("breath") || t.includes("anxious") || t.includes("anxi") || t.includes("tense") || t.includes("racing heart") || t.includes("nervous") || t.includes("panic") ||
         t.includes("呼吸") || t.includes("焦虑") || t.includes("紧张") || t.includes("喘不过") || t.includes("心慌") || t.includes("睡不着"))
