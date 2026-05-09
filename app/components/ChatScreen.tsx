@@ -853,6 +853,8 @@ export default function ChatScreen({
   const suggestedRef = useRef(false);
   // One-shot bypass: when user explicitly asks for a method/practice, allow re-suggestion even if already suggested once
   const userAskedForPracticeRef = useRef(false);
+  // Accumulated count of user messages containing distress signals — practice nudge requires sustained signal, not a single keyword
+  const distressSignalsRef = useRef(0);
   const [validationCard, setValidationCard] = useState<CardData | null>(null);
   const crisisShownRef = useRef(false); // prevent repeat triggers in same session
   const [practiceNudge, setPracticeNudge] = useState<{ practiceId: string; categoryId: string } | null>(null);
@@ -1009,9 +1011,13 @@ export default function ChatScreen({
       "透不过气", "心累", "疲", "无力", "麻木", "心烦",
     ];
     const hasDistress = distressMarkers.some((k) => t.includes(k));
-    if (!hasDistress && !wasAsked) {
+    if (hasDistress) distressSignalsRef.current += 1;
+
+    // Need accumulated signal — single distress words don't fire the nudge.
+    // Explicit asks ("any tips?") bypass via wasAsked.
+    if (!wasAsked && distressSignalsRef.current < 2) {
       if (process.env.NODE_ENV !== "production") {
-        console.log("[practiceNudge] skipped: no distress signal");
+        console.log("[practiceNudge] skipped: distress count", distressSignalsRef.current);
       }
       return;
     }
