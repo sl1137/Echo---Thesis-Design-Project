@@ -24,16 +24,6 @@ export default function DemoSplashScreen({ onContinue }: DemoSplashScreenProps) 
           >
             Echo
           </h1>
-          <p
-            className="mt-1 text-[14px]"
-            style={{
-              fontFamily: "var(--font-sans)",
-              color: "rgba(255,255,255,0.92)",
-              textShadow: "0 1px 4px rgba(0,0,0,0.45)",
-            }}
-          >
-            A prototype demo — emotional support for international grad students
-          </p>
         </div>
 
         {/* Middle: explanation card */}
